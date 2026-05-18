@@ -1,0 +1,75 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    function userDoc() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid));
+    }
+
+    function isAdmin() {
+      return signedIn() && userDoc().data.role in ["Administrador", "Asistente comercial"];
+    }
+
+    function isTecnoStaff() {
+      return signedIn() && userDoc().data.role in ["Administrador", "Asistente comercial", "Vendedor", "Técnico"];
+    }
+
+    function sameCompany(companyId) {
+      return signedIn() && userDoc().data.companyId == companyId;
+    }
+
+    match /users/{userId} {
+      allow read: if signedIn() && (request.auth.uid == userId || isTecnoStaff());
+      allow create, update: if isAdmin();
+      allow delete: if false;
+    }
+
+    match /companies/{companyId} {
+      allow read: if sameCompany(companyId) || isTecnoStaff();
+      allow create, update: if isAdmin();
+      allow delete: if false;
+    }
+
+    match /plans/{planId} {
+      allow read: if signedIn();
+      allow create, update: if isAdmin();
+      allow delete: if false;
+    }
+
+    match /equipment/{equipmentId} {
+      allow read: if sameCompany(resource.data.companyId) || isTecnoStaff();
+      allow create: if isTecnoStaff() || sameCompany(request.resource.data.companyId);
+      allow update: if isTecnoStaff() || sameCompany(resource.data.companyId);
+      allow delete: if false;
+    }
+
+    match /tickets/{ticketId} {
+      allow read: if sameCompany(resource.data.companyId) || isTecnoStaff();
+      allow create: if isTecnoStaff() || sameCompany(request.resource.data.companyId);
+      allow update: if isTecnoStaff() || sameCompany(resource.data.companyId);
+      allow delete: if false;
+    }
+
+    match /ticketUpdates/{updateId} {
+      allow read: if isTecnoStaff() || sameCompany(resource.data.companyId);
+      allow create: if isTecnoStaff() || sameCompany(request.resource.data.companyId);
+      allow update, delete: if false;
+    }
+
+    match /repairs/{repairId} {
+      allow read: if sameCompany(resource.data.companyId) || isTecnoStaff();
+      allow create, update: if isTecnoStaff();
+      allow delete: if false;
+    }
+
+    match /serviceLogs/{logId} {
+      allow read: if sameCompany(resource.data.companyId) || isTecnoStaff();
+      allow create, update: if isTecnoStaff();
+      allow delete: if false;
+    }
+  }
+}

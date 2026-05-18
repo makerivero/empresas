@@ -1,0 +1,20 @@
+{
+  "name": "portal-tecnostore-empresas",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Portal web responsive para TecnoStore Empresas.",
+  "type": "module",
+  "scripts": {
+    "dev": "vite --host 0.0.0.0",
+    "build": "vite build",
+    "preview": "vite preview --host 0.0.0.0",
+    "deploy:vercel": "vercel --prod",
+    "deploy:firebase": "firebase deploy"
+  },
+  "devDependencies": {
+    "vite": "^5.4.0"
+  },
+  "dependencies": {
+    "firebase": "^10.14.0"
+  }
+}

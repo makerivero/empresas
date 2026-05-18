@@ -1,0 +1,2221 @@
+const STORAGE_KEY = "tecnostore_empresas_demo_v1";
+
+const ticketStatuses = [
+  "Recibido",
+  "En revisión",
+  "Programado",
+  "En proceso",
+  "Esperando respuesta del cliente",
+  "Resuelto",
+  "Cerrado",
+  "Cancelado",
+];
+
+const repairStatuses = [
+  "Recibido",
+  "Diagnóstico pendiente",
+  "Diagnosticado",
+  "Esperando aprobación",
+  "En reparación",
+  "Esperando repuesto",
+  "Listo para retirar",
+  "Entregado",
+  "Cancelado",
+];
+
+const equipmentStatuses = ["Activo", "En revisión", "En reparación", "Inactivo"];
+const subscriptionStatuses = ["Activa", "Pendiente de pago", "Vencida", "Suspendida"];
+const internalRoles = ["Administrador", "Asistente comercial", "Vendedor", "Técnico"];
+const closedTicketStatuses = ["Resuelto", "Cerrado", "Cancelado"];
+const closedRepairStatuses = ["Entregado", "Cancelado"];
+
+const planCatalog = [
+  {
+    id: "start",
+    name: "Plan Start",
+    shortName: "Start",
+    price: "$80.000 / mes",
+    description: "Ideal para 1 a 3 PCs.",
+    maxEquipment: 3,
+    includedAssistances: 4,
+    features: [
+      "soporte remoto",
+      "mantenimiento preventivo",
+      "optimización básica",
+      "asistencia técnica básica",
+    ],
+  },
+  {
+    id: "pyme",
+    name: "Plan Pyme",
+    shortName: "Pyme",
+    price: "$150.000 / mes",
+    description: "Ideal para 4 a 10 PCs.",
+    maxEquipment: 10,
+    includedAssistances: 10,
+    features: [
+      "soporte remoto y presencial",
+      "mantenimiento mensual",
+      "optimización general",
+      "asistencia prioritaria",
+      "revisión de red y conectividad",
+    ],
+  },
+  {
+    id: "full",
+    name: "Plan Full Support",
+    shortName: "Full Support",
+    price: "$280.000 / mes",
+    description: "Para empresas con mayor dependencia tecnológica.",
+    maxEquipment: 30,
+    includedAssistances: 20,
+    features: [
+      "soporte integral",
+      "mantenimiento completo",
+      "asistencia prioritaria",
+      "monitoreo general",
+      "soporte continuo",
+    ],
+  },
+];
+
+const defaultState = {
+  loggedIn: false,
+  role: "client",
+  currentCompanyId: "c1",
+  selectedTicketId: "t1",
+  clientView: "dashboard",
+  adminView: "admin-dashboard",
+  adminFocus: null,
+  filters: {
+    ticketStatus: "Todos",
+    ticketUrgency: "Todas",
+    ticketCompany: "Todas",
+  },
+  plans: structuredClone(planCatalog),
+  users: [
+    {
+      id: "u-client-1",
+      name: "Marina Galván",
+      email: "administracion@ecnorte.com",
+      password: "demo1234",
+      role: "Cliente empresa",
+      companyId: "c1",
+      phone: "266 432 8811",
+      active: true,
+      createdAt: "2026-02-01",
+    },
+    {
+      id: "u-client-2",
+      name: "Pablo Miranda",
+      email: "sistemas@andina.com",
+      password: "demo1234",
+      role: "Cliente empresa",
+      companyId: "c2",
+      phone: "266 510 2299",
+      active: true,
+      createdAt: "2026-01-15",
+    },
+    {
+      id: "u-admin-1",
+      name: "Administrador TecnoStore",
+      email: "admin@tecnostore.com",
+      password: "demo1234",
+      role: "Administrador",
+      companyId: "",
+      phone: "266 510 5694",
+      active: true,
+      createdAt: "2026-01-01",
+    },
+    {
+      id: "u-sales-1",
+      name: "Carla Sosa",
+      email: "comercial@tecnostore.com",
+      password: "demo1234",
+      role: "Asistente comercial",
+      companyId: "",
+      phone: "266 510 5694",
+      active: true,
+      createdAt: "2026-03-01",
+    },
+    {
+      id: "u-tech-1",
+      name: "Lucas Pereyra",
+      email: "lucas@tecnostore.com",
+      password: "demo1234",
+      role: "Técnico",
+      companyId: "",
+      phone: "266 500 1101",
+      active: true,
+      createdAt: "2026-01-10",
+    },
+    {
+      id: "u-tech-2",
+      name: "Sofía Brizuela",
+      email: "sofia@tecnostore.com",
+      password: "demo1234",
+      role: "Técnico",
+      companyId: "",
+      phone: "266 500 1102",
+      active: true,
+      createdAt: "2026-01-10",
+    },
+    {
+      id: "u-sales-2",
+      name: "Matías Quiroga",
+      email: "ventas@tecnostore.com",
+      password: "demo1234",
+      role: "Vendedor",
+      companyId: "",
+      phone: "266 500 1103",
+      active: true,
+      createdAt: "2026-03-15",
+    },
+  ],
+  companies: [
+    {
+      id: "c1",
+      name: "Estudio Contable Norte",
+      cuit: "30-71824591-6",
+      contactName: "Marina Galván",
+      phone: "266 432 8811",
+      email: "administracion@ecnorte.com",
+      address: "Rivadavia 550, San Luis",
+      planId: "pyme",
+      subscriptionStatus: "Activa",
+      startDate: "2026-02-01",
+      renewalDate: "2026-06-01",
+      includedAssistances: 10,
+      usedAssistances: 5,
+      maxEquipment: 10,
+      notes: "Prefiere visitas por la mañana. Router principal en administración.",
+      createdAt: "2026-02-01",
+    },
+    {
+      id: "c2",
+      name: "Distribuidora Andina",
+      cuit: "30-65740312-9",
+      contactName: "Pablo Miranda",
+      phone: "266 510 2299",
+      email: "sistemas@andina.com",
+      address: "Ruta 3, Parque Industrial",
+      planId: "full",
+      subscriptionStatus: "Activa",
+      startDate: "2026-01-15",
+      renewalDate: "2026-05-25",
+      includedAssistances: 20,
+      usedAssistances: 13,
+      maxEquipment: 30,
+      notes: "Operación crítica de lunes a sábado.",
+      createdAt: "2026-01-15",
+    },
+  ],
+  equipment: [
+    {
+      id: "e1",
+      companyId: "c1",
+      name: "PC Administración 1",
+      type: "PC",
+      brand: "Dell",
+      model: "OptiPlex 3080",
+      serialNumber: "DL-98341",
+      userOrSector: "Administración",
+      operatingSystem: "Windows 11 Pro",
+      status: "Activo",
+      notes: "Equipo principal de facturación.",
+      lastServiceDate: "2026-05-08",
+      createdAt: "2026-02-03",
+    },
+    {
+      id: "e2",
+      companyId: "c1",
+      name: "Notebook Ventas",
+      type: "notebook",
+      brand: "Lenovo",
+      model: "ThinkPad E14",
+      serialNumber: "LN-44129",
+      userOrSector: "Ventas",
+      operatingSystem: "Windows 11 Pro",
+      status: "En revisión",
+      notes: "Se revisa lentitud al iniciar.",
+      lastServiceDate: "2026-05-14",
+      createdAt: "2026-02-05",
+    },
+    {
+      id: "e3",
+      companyId: "c1",
+      name: "Impresora Recepción",
+      type: "impresora",
+      brand: "HP",
+      model: "LaserJet Pro M404",
+      serialNumber: "HP-77820",
+      userOrSector: "Recepción",
+      operatingSystem: "Red",
+      status: "Activo",
+      notes: "Configurada por IP fija.",
+      lastServiceDate: "2026-04-20",
+      createdAt: "2026-02-10",
+    },
+    {
+      id: "e4",
+      companyId: "c1",
+      name: "Servidor Principal",
+      type: "servidor",
+      brand: "HPE",
+      model: "ProLiant ML30",
+      serialNumber: "SV-99201",
+      userOrSector: "Archivo central",
+      operatingSystem: "Windows Server",
+      status: "Activo",
+      notes: "Backup diario configurado.",
+      lastServiceDate: "2026-05-10",
+      createdAt: "2026-03-01",
+    },
+    {
+      id: "e5",
+      companyId: "c2",
+      name: "PC Logística 2",
+      type: "PC",
+      brand: "HP",
+      model: "ProDesk 400",
+      serialNumber: "HP-44887",
+      userOrSector: "Logística",
+      operatingSystem: "Windows 10 Pro",
+      status: "En reparación",
+      notes: "Orden activa por fuente dañada.",
+      lastServiceDate: "2026-05-12",
+      createdAt: "2026-01-18",
+    },
+  ],
+  tickets: [
+    {
+      id: "t1",
+      companyId: "c1",
+      equipmentId: "e2",
+      ticketNumber: "TK-2026-0018",
+      problemType: "rendimiento lento",
+      urgency: "normal",
+      modality: "remoto",
+      description: "La notebook demora demasiado al iniciar sesión y abrir el sistema de gestión.",
+      status: "En revisión",
+      assignedTechnician: "Lucas Pereyra",
+      customerComments: ["Adjuntamos captura del error al iniciar."],
+      internalNotes: "Revisar programas de inicio y estado de disco.",
+      createdAt: "2026-05-14",
+      updatedAt: "2026-05-15",
+    },
+    {
+      id: "t2",
+      companyId: "c1",
+      equipmentId: "e3",
+      ticketNumber: "TK-2026-0019",
+      problemType: "impresora no funciona",
+      urgency: "alta",
+      modality: "presencial",
+      description: "No imprime desde dos puestos de recepción. El equipo figura sin conexión.",
+      status: "Programado",
+      assignedTechnician: "Sofía Brizuela",
+      customerComments: [],
+      internalNotes: "Visita coordinada para mañana 10:30.",
+      createdAt: "2026-05-16",
+      updatedAt: "2026-05-17",
+    },
+    {
+      id: "t3",
+      companyId: "c2",
+      equipmentId: "e5",
+      ticketNumber: "TK-2026-0020",
+      problemType: "equipo no enciende",
+      urgency: "crítica",
+      modality: "presencial",
+      description: "PC de logística dejó de encender luego de un corte de energía.",
+      status: "En proceso",
+      assignedTechnician: "Martín Agüero",
+      customerComments: [],
+      internalNotes: "Se retira equipo para diagnóstico de fuente.",
+      createdAt: "2026-05-17",
+      updatedAt: "2026-05-18",
+    },
+  ],
+  ticketUpdates: [
+    {
+      id: "u1",
+      ticketId: "t1",
+      status: "Recibido",
+      message: "Ticket creado por el cliente.",
+      author: "Cliente",
+      visibleToClient: true,
+      createdAt: "2026-05-14",
+    },
+    {
+      id: "u2",
+      ticketId: "t1",
+      status: "En revisión",
+      message: "Nuestro equipo técnico está revisando la información.",
+      author: "TecnoStore",
+      visibleToClient: true,
+      createdAt: "2026-05-15",
+    },
+    {
+      id: "u3",
+      ticketId: "t2",
+      status: "Programado",
+      message: "Visita técnica programada para revisar conectividad de impresora.",
+      author: "TecnoStore",
+      visibleToClient: true,
+      createdAt: "2026-05-17",
+    },
+  ],
+  repairs: [
+    {
+      id: "r1",
+      companyId: "c2",
+      equipmentId: "e5",
+      orderNumber: "OR-2026-0042",
+      status: "En reparación",
+      diagnosis: "Fuente dañada por variación eléctrica.",
+      budget: "$42.000",
+      approved: true,
+      assignedTechnician: "Martín Agüero",
+      notes: "Repuesto disponible. Pruebas finales pendientes.",
+      entryDate: "2026-05-17",
+      estimatedFinishDate: "2026-05-20",
+      deliveredDate: "",
+      createdAt: "2026-05-17",
+    },
+    {
+      id: "r2",
+      companyId: "c1",
+      equipmentId: "e2",
+      orderNumber: "OR-2026-0041",
+      status: "Diagnosticado",
+      diagnosis: "Disco con sectores lentos. Se recomienda reemplazo por SSD.",
+      budget: "$65.000",
+      approved: false,
+      assignedTechnician: "Lucas Pereyra",
+      notes: "Pendiente de aprobación del cliente.",
+      entryDate: "2026-05-15",
+      estimatedFinishDate: "2026-05-22",
+      deliveredDate: "",
+      createdAt: "2026-05-15",
+    },
+  ],
+  serviceLogs: [
+    {
+      id: "s1",
+      companyId: "c1",
+      equipmentId: "e1",
+      ticketId: "",
+      repairId: "",
+      serviceType: "mantenimiento preventivo",
+      description: "Limpieza de temporales, revisión de antivirus y optimización de inicio.",
+      technician: "Sofía Brizuela",
+      status: "Finalizado",
+      createdAt: "2026-05-08",
+    },
+    {
+      id: "s2",
+      companyId: "c1",
+      equipmentId: "e4",
+      ticketId: "",
+      repairId: "",
+      serviceType: "backup",
+      description: "Verificación de backup diario y restauración de prueba.",
+      technician: "Lucas Pereyra",
+      status: "Finalizado",
+      createdAt: "2026-05-10",
+    },
+    {
+      id: "s3",
+      companyId: "c1",
+      equipmentId: "e3",
+      ticketId: "t2",
+      repairId: "",
+      serviceType: "visita técnica",
+      description: "Visita programada para revisar impresora de recepción.",
+      technician: "Sofía Brizuela",
+      status: "Programado",
+      createdAt: "2026-05-17",
+    },
+  ],
+};
+
+let state = loadState();
+
+function loadState() {
+  const saved = localStorage.getItem(STORAGE_KEY);
+  if (!saved) return structuredClone(defaultState);
+  try {
+    return { ...structuredClone(defaultState), ...JSON.parse(saved) };
+  } catch {
+    return structuredClone(defaultState);
+  }
+}
+
+function saveState() {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+}
+
+function resetDemo() {
+  state = structuredClone(defaultState);
+  saveState();
+  render();
+}
+
+function $(selector) {
+  return document.querySelector(selector);
+}
+
+function formatDate(value) {
+  if (!value) return "Sin fecha";
+  const [year, month, day] = value.split("-");
+  return `${day}/${month}/${year}`;
+}
+
+function uid(prefix) {
+  return `${prefix}${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6)}`;
+}
+
+function getCompany(id = state.currentCompanyId) {
+  return state.companies.find((company) => company.id === id) || state.companies[0];
+}
+
+function getPlan(id) {
+  return state.plans.find((plan) => plan.id === id) || state.plans[1] || planCatalog[1];
+}
+
+function getEquipment(id) {
+  if (id === "other") {
+    return {
+      id: "other",
+      name: "Otro / consulta general",
+      type: "otro",
+      companyId: state.currentCompanyId,
+      status: "Activo",
+      userOrSector: "Consulta general",
+    };
+  }
+  return state.equipment.find((item) => item.id === id);
+}
+
+function getCompanyUser(companyId) {
+  return state.users.find((user) => user.companyId === companyId && user.role === "Cliente empresa");
+}
+
+function internalUsers(role) {
+  return state.users.filter((user) => user.active && (!role || user.role === role));
+}
+
+function technicianOptions(selected = "") {
+  const technicians = internalUsers("Técnico");
+  const options = technicians.length ? technicians.map((user) => user.name) : ["Lucas Pereyra", "Sofía Brizuela"];
+  return [`<option value="">Pendiente</option>`, ...options.map((name) => `<option value="${name}" ${selected === name ? "selected" : ""}>${name}</option>`)].join("");
+}
+
+function isOpenTicket(ticket) {
+  return !closedTicketStatuses.includes(ticket.status);
+}
+
+function isUrgentTicket(ticket) {
+  return ticket.urgency === "alta" || ticket.urgency.includes("cr");
+}
+
+function isActiveRepair(repair) {
+  return !closedRepairStatuses.includes(repair.status);
+}
+
+function companyEquipment(companyId = state.currentCompanyId) {
+  return state.equipment.filter((item) => item.companyId === companyId);
+}
+
+function equipmentOptionsForCompany(companyId, selected = "", includeOther = true) {
+  const assigned = companyEquipment(companyId);
+  const options = includeOther
+    ? [`<option value="other" ${selected === "other" || !selected ? "selected" : ""}>Otro / consulta general</option>`]
+    : assigned.length === 0
+      ? [`<option value="">Sin equipos asignados</option>`]
+    : [];
+  return [
+    ...options,
+    ...assigned.map((item) => `<option value="${item.id}" ${selected === item.id ? "selected" : ""}>${item.name}</option>`),
+  ].join("");
+}
+
+function companyTickets(companyId = state.currentCompanyId) {
+  return state.tickets.filter((ticket) => ticket.companyId === companyId);
+}
+
+function companyRepairs(companyId = state.currentCompanyId) {
+  return state.repairs.filter((repair) => repair.companyId === companyId);
+}
+
+function companyLogs(companyId = state.currentCompanyId) {
+  return state.serviceLogs.filter((log) => log.companyId === companyId);
+}
+
+function statusClass(status) {
+  const text = status.toLowerCase();
+  if (["activa", "activo", "resuelto", "cerrado", "entregado", "listo para retirar"].some((word) => text.includes(word))) {
+    return "success";
+  }
+  if (["alta", "crítica", "vencida", "suspendida", "cancelado"].some((word) => text.includes(word))) {
+    return "danger";
+  }
+  if (["pendiente", "esperando", "programado", "diagnosticado", "en revisión", "en reparación", "en proceso"].some((word) => text.includes(word))) {
+    return "warning";
+  }
+  return "";
+}
+
+function badge(text) {
+  return `<span class="badge ${statusClass(text)}">${text}</span>`;
+}
+
+function navItems() {
+  if (state.role === "admin") {
+    return [
+      ["admin-dashboard", "Inicio", "◧"],
+      ["admin-companies", "Empresas", "□"],
+      ["admin-tickets", "Tickets", "≡"],
+      ["admin-repairs", "Reparaciones", "◇"],
+      ["admin-equipment", "Equipos", "▣"],
+      ["admin-users", "Usuarios", "♙"],
+      ["admin-plans", "Planes", "◎"],
+    ];
+  }
+  return [
+    ["dashboard", "Inicio", "◧"],
+    ["equipment", "Mis equipos", "▣"],
+    ["support", "Solicitar soporte", "+"],
+    ["tickets", "Tickets", "≡"],
+    ["repairs", "Reparaciones", "◇"],
+    ["plan", "Plan y facturación", "◎"],
+    ["history", "Historial", "◷"],
+    ["contact", "Contacto", "☎"],
+  ];
+}
+
+function activeView() {
+  return state.role === "admin" ? state.adminView : state.clientView;
+}
+
+function setView(view) {
+  if (state.role === "admin") {
+    state.adminView = view;
+    state.adminFocus = null;
+  } else state.clientView = view;
+  saveState();
+  render();
+  window.scrollTo({ top: 0, behavior: "smooth" });
+}
+
+function login(role, email = "") {
+  const user = state.users.find((item) => item.email.toLowerCase() === email.toLowerCase() && item.active);
+  state.loggedIn = true;
+  if (user?.role === "Cliente empresa") {
+    state.role = "client";
+    state.currentCompanyId = user.companyId || state.currentCompanyId;
+    state.clientView = "dashboard";
+  } else {
+    state.role = role === "client" ? "client" : "admin";
+    if (state.role === "admin") state.adminView = "admin-dashboard";
+    else state.clientView = "dashboard";
+  }
+  saveState();
+  render();
+}
+
+function logout() {
+  state.loggedIn = false;
+  saveState();
+  document.body.className = "";
+  $("#app").innerHTML = loginTemplate();
+  bindLoginEvents();
+}
+
+function render() {
+  document.body.className = state.role;
+  $("#app").innerHTML = shellTemplate();
+  bindGlobalEvents();
+  bindCurrentViewEvents();
+}
+
+function loginTemplate() {
+  return `
+    <main class="login-shell">
+      <section class="login-visual">
+        <div class="login-copy">
+          <h1>Portal TecnoStore Empresas</h1>
+          <p>Soporte técnico y mantenimiento IT para empresas y PYMES. Mantenemos la tecnología de tu negocio funcionando.</p>
+          <div class="login-proof">
+            <div class="proof-item"><strong>24</strong><span>tickets gestionados este mes</span></div>
+            <div class="proof-item"><strong>98%</strong><span>servicios resueltos sin fricción</span></div>
+            <div class="proof-item"><strong>12</strong><span>empresas activas en soporte</span></div>
+          </div>
+        </div>
+      </section>
+      <section class="login-panel">
+        <form class="login-card" id="loginForm">
+          <div class="brand">
+            <img class="brand-logo" src="./assets/logo.png" alt="TecnoStore Empresas" />
+            <div>
+              <strong>TecnoStore Empresas</strong>
+              <span>Portal privado de soporte IT</span>
+            </div>
+          </div>
+          <h2>Ingresar</h2>
+          <p>Portal de soporte técnico para empresas y PYMES.</p>
+          <div class="demo-switch">
+            <button type="button" class="active" data-demo-role="client">Cliente empresa</button>
+            <button type="button" data-demo-role="admin">Administrador</button>
+          </div>
+          <div class="field">
+            <label for="email">Email</label>
+            <input id="email" type="email" value="cliente@empresa.com" autocomplete="email" />
+          </div>
+          <div class="field">
+            <label for="password">Contraseña</label>
+            <input id="password" type="password" value="demo1234" autocomplete="current-password" />
+          </div>
+          <div class="login-actions">
+            <button class="button" type="submit">Ingresar</button>
+            <button class="ghost-button" type="button" data-help>¿Necesitás ayuda?</button>
+          </div>
+          <p class="helper-text">Demo sin base de datos. Podés probar como cliente o administrador y los cambios se guardan solo en este navegador.</p>
+        </form>
+      </section>
+    </main>
+  `;
+}
+
+function shellTemplate() {
+  const company = getCompany();
+  const items = navItems();
+  const current = activeView();
+  const sidebarNav = items
+    .map(([id, label, icon]) => `<button class="${current === id ? "active" : ""}" data-view="${id}"><span>${icon}</span>${label}</button>`)
+    .join("");
+  const mobileItems = state.role === "admin"
+    ? items.slice(0, 5)
+    : [
+        ["dashboard", "Inicio", "◧"],
+        ["equipment", "Equipos", "▣"],
+        ["tickets", "Tickets", "≡"],
+        ["support", "Soporte", "+"],
+        ["plan", "Plan", "◎"],
+      ];
+  const mobileNav = mobileItems
+    .map(([id, label, icon]) => `<button class="${current === id ? "active" : ""}" data-view="${id}"><span>${icon}</span>${label}</button>`)
+    .join("");
+
+  return `
+    <div class="app-shell">
+      <aside class="sidebar">
+        <div class="brand">
+          <img class="brand-logo" src="./assets/logo.png" alt="TecnoStore Empresas" />
+          <div>
+            <strong>TecnoStore Empresas</strong>
+            <span>Soporte IT organizado</span>
+          </div>
+        </div>
+        <nav class="nav">${sidebarNav}</nav>
+        <div class="sidebar-footer">
+          <strong>Nos ocupamos de la tecnología de tu negocio.</strong><br />
+          ${state.role === "admin" ? "Panel privado para gestión interna." : company.name}
+        </div>
+      </aside>
+      <main>
+        <header class="topbar">
+          <div class="brand">
+            <img class="brand-logo" src="./assets/logo.png" alt="TecnoStore Empresas" />
+            <div>
+              <strong>TecnoStore Empresas</strong>
+              <span>Portal privado de soporte IT</span>
+            </div>
+          </div>
+          <div class="topbar-actions">
+            <span class="role-pill">${state.role === "admin" ? "Administrador TecnoStore" : company.name}</span>
+            <button class="soft-button" type="button" data-toggle-role>${state.role === "admin" ? "Ver cliente" : "Ver admin"}</button>
+            <button class="icon-button" type="button" data-logout title="Salir">×</button>
+          </div>
+        </header>
+        <section class="content">${contentTemplate()}</section>
+      </main>
+      <nav class="mobile-nav">${mobileNav}</nav>
+      <dialog id="modal"></dialog>
+    </div>
+  `;
+}
+
+function contentTemplate() {
+  if (state.role === "admin") {
+    return {
+      "admin-dashboard": adminDashboardTemplate,
+      "admin-companies": adminCompaniesTemplate,
+      "admin-tickets": adminTicketsTemplate,
+      "admin-repairs": adminRepairsTemplate,
+      "admin-equipment": adminEquipmentTemplate,
+      "admin-users": adminUsersTemplate,
+      "admin-plans": adminPlansTemplate,
+    }[state.adminView]();
+  }
+  return {
+    dashboard: dashboardTemplate,
+    equipment: equipmentTemplate,
+    support: supportTemplate,
+    tickets: ticketsTemplate,
+    "ticket-detail": ticketDetailTemplate,
+    repairs: repairsTemplate,
+    plan: planTemplate,
+    history: historyTemplate,
+    contact: contactTemplate,
+  }[state.clientView]();
+}
+
+function dashboardTemplate() {
+  const company = getCompany();
+  const plan = getPlan(company.planId);
+  const tickets = companyTickets();
+  const equipment = companyEquipment();
+  const repairs = companyRepairs();
+  const openTickets = tickets.filter((ticket) => !["Resuelto", "Cerrado", "Cancelado"].includes(ticket.status));
+  const recent = [
+    ...tickets.map((ticket) => ({
+      date: ticket.updatedAt,
+      type: "ticket creado",
+      status: ticket.status,
+      description: `${ticket.ticketNumber} sobre ${getEquipment(ticket.equipmentId)?.name || "equipo"}`,
+    })),
+    ...companyLogs().map((log) => ({
+      date: log.createdAt,
+      type: log.serviceType,
+      status: log.status,
+      description: log.description,
+    })),
+    ...repairs.map((repair) => ({
+      date: repair.entryDate,
+      type: "equipo recibido",
+      status: repair.status,
+      description: `${repair.orderNumber} - ${getEquipment(repair.equipmentId)?.name || "Equipo"}`,
+    })),
+  ]
+    .sort((a, b) => b.date.localeCompare(a.date))
+    .slice(0, 6);
+
+  return `
+    <div class="section-head">
+      <div>
+        <h1>Hola, ${company.name}</h1>
+        <p>Tu soporte técnico está activo.</p>
+      </div>
+      <button class="button" data-view="support">Solicitar asistencia</button>
+    </div>
+    <div class="grid stats-grid">
+      ${statCard("Plan activo", plan.shortName, plan.price)}
+      ${statCard("Asistencias disponibles", `${company.includedAssistances - company.usedAssistances} de ${company.includedAssistances}`, "Consumo mensual del servicio")}
+      ${statCard("Tickets abiertos", openTickets.length, "Solicitudes en seguimiento")}
+      ${statCard("Equipos registrados", equipment.length, `${company.maxEquipment} permitidos por plan`)}
+      ${statCard("Próximo vencimiento", formatDate(company.renewalDate), company.subscriptionStatus)}
+      ${statCard("Equipos en reparación", repairs.filter((repair) => !["Entregado", "Cancelado"].includes(repair.status)).length, "Órdenes activas")}
+    </div>
+    <div class="grid two-col" style="margin-top: 18px;">
+      <section class="panel">
+        <div class="panel-head">
+          <div>
+            <h2>Actividad reciente</h2>
+            <p>Historial técnico organizado para tu empresa.</p>
+          </div>
+        </div>
+        <div class="activity-list">
+          ${recent.map((item) => activityRow(item)).join("")}
+        </div>
+      </section>
+      <section class="panel">
+        <h2>Estado del servicio</h2>
+        <div class="meta-grid">
+          ${meta("Suscripción", badge(company.subscriptionStatus))}
+          ${meta("Contacto", company.contactName)}
+          ${meta("Equipos activos", equipment.filter((item) => item.status === "Activo").length)}
+          ${meta("Urgencias", tickets.filter((ticket) => ["alta", "crítica"].includes(ticket.urgency)).length)}
+        </div>
+      </section>
+    </div>
+  `;
+}
+
+function statCard(label, value, note, action = "") {
+  if (action) {
+    return `<button class="stat-card stat-action" type="button" data-admin-shortcut="${action}"><span>${label}</span><strong>${value}</strong><small>${note}</small></button>`;
+  }
+  return `<article class="stat-card"><span>${label}</span><strong>${value}</strong><small>${note}</small></article>`;
+}
+
+function meta(label, value) {
+  return `<div class="meta"><span>${label}</span><strong>${value}</strong></div>`;
+}
+
+function activityRow(item) {
+  return `
+    <div class="activity-row">
+      <div class="item-head">
+        <strong>${item.type}</strong>
+        ${badge(item.status)}
+      </div>
+      <span>${formatDate(item.date)} · ${item.description}</span>
+    </div>
+  `;
+}
+
+function equipmentTemplate() {
+  const items = companyEquipment();
+  return `
+    <div class="section-head">
+      <div>
+        <h1>Mis equipos</h1>
+        <p>Consultá el estado de tus equipos en tiempo real.</p>
+      </div>
+      <button class="button" data-open-equipment>Agregar equipo</button>
+    </div>
+    <div class="grid cards-grid">
+      ${items.map(equipmentCard).join("")}
+    </div>
+  `;
+}
+
+function equipmentCard(item) {
+  return `
+    <article class="card">
+      <div class="item-head">
+        <div>
+          <h2 class="item-title">${item.name}</h2>
+          <p class="item-subtitle">${item.type} · ${item.brand} ${item.model}</p>
+        </div>
+        ${badge(item.status)}
+      </div>
+      <div class="meta-grid">
+        ${meta("Serie", item.serialNumber)}
+        ${meta("Sector", item.userOrSector)}
+        ${meta("Sistema", item.operatingSystem)}
+        ${meta("Último servicio", formatDate(item.lastServiceDate))}
+      </div>
+      <p class="item-subtitle">${item.notes}</p>
+      <div class="toolbar" style="margin: 14px 0 0;">
+        <button class="soft-button" data-open-equipment="${item.id}">Editar</button>
+        <button class="ghost-button" data-equipment-history="${item.id}">Ver historial</button>
+        <button class="button" data-support-equipment="${item.id}">Solicitar soporte</button>
+      </div>
+    </article>
+  `;
+}
+
+function supportTemplate(selectedEquipmentId = "") {
+  const equipmentOptions = equipmentOptionsForCompany(state.currentCompanyId, selectedEquipmentId, true);
+  return `
+    <div class="section-head">
+      <div>
+        <h1>Solicitar asistencia técnica</h1>
+        <p>Solicitá asistencia en pocos pasos.</p>
+      </div>
+    </div>
+    <div id="supportNotice" class="notice">Tu solicitud fue enviada correctamente. Nuestro equipo técnico la revisará a la brevedad.</div>
+    <section class="panel">
+      <form id="ticketForm" class="form-grid">
+        <div class="field">
+          <label>Equipo afectado</label>
+          <select name="equipmentId" required>${equipmentOptions}</select>
+        </div>
+        <div class="field">
+          <label>Tipo de problema</label>
+          <select name="problemType" required>
+            <option>rendimiento lento</option>
+            <option>problema de internet/red</option>
+            <option>impresora no funciona</option>
+            <option>error de Windows</option>
+            <option>virus o malware</option>
+            <option>problema de software</option>
+            <option>equipo no enciende</option>
+            <option>backup / archivos</option>
+            <option>otro</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>Urgencia</label>
+          <select name="urgency" required>
+            <option>baja</option>
+            <option selected>normal</option>
+            <option>alta</option>
+            <option>crítica</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>Modalidad preferida</label>
+          <select name="modality" required>
+            <option>remoto</option>
+            <option>presencial</option>
+            <option>indiferente</option>
+          </select>
+        </div>
+        <div class="field wide">
+          <label>Descripción del problema</label>
+          <textarea name="description" required placeholder="Contanos qué ocurre, cuándo empezó y qué tarea está afectando."></textarea>
+        </div>
+        <div class="field">
+          <label>Horario disponible</label>
+          <input name="availability" placeholder="Ej: lunes a viernes de 9 a 13" />
+        </div>
+        <div class="field">
+          <label>Adjuntar archivo opcional</label>
+          <input name="attachment" type="file" />
+        </div>
+        <div class="wide">
+          <button class="button" type="submit">Enviar solicitud</button>
+        </div>
+      </form>
+    </section>
+  `;
+}
+
+function ticketsTemplate() {
+  const tickets = companyTickets().sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+  return `
+    <div class="section-head">
+      <div>
+        <h1>Tickets</h1>
+        <p>Consultá el estado de tus solicitudes de soporte.</p>
+      </div>
+      <button class="button" data-view="support">Nuevo ticket</button>
+    </div>
+    <section class="panel">
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Ticket</th>
+              <th>Equipo</th>
+              <th>Problema</th>
+              <th>Fecha</th>
+              <th>Urgencia</th>
+              <th>Modalidad</th>
+              <th>Estado</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody>
+            ${tickets.map(ticketRow).join("")}
+          </tbody>
+        </table>
+      </div>
+    </section>
+  `;
+}
+
+function ticketRow(ticket) {
+  return `
+    <tr>
+      <td><strong>${ticket.ticketNumber}</strong></td>
+      <td>${getEquipment(ticket.equipmentId)?.name || "Sin equipo"}</td>
+      <td>${ticket.problemType}</td>
+      <td>${formatDate(ticket.createdAt)}</td>
+      <td>${badge(ticket.urgency)}</td>
+      <td>${ticket.modality}</td>
+      <td>${badge(ticket.status)}</td>
+      <td><button class="soft-button" data-ticket-detail="${ticket.id}">Ver</button></td>
+    </tr>
+  `;
+}
+
+function ticketDetailTemplate() {
+  const ticket = state.tickets.find((item) => item.id === state.selectedTicketId) || companyTickets()[0];
+  if (!ticket) return `<div class="empty-state">No hay tickets para mostrar.</div>`;
+  const equipment = getEquipment(ticket.equipmentId);
+  const steps = ["Ticket creado", "En revisión", "En proceso", "Resuelto", "Cerrado"];
+  const statusIndex = Math.max(0, steps.findIndex((step) => step.includes(ticket.status) || ticket.status.includes(step.replace("Ticket creado", "Recibido"))));
+  const updates = state.ticketUpdates.filter((update) => update.ticketId === ticket.id && update.visibleToClient);
+
+  return `
+    <div class="section-head">
+      <div>
+        <h1>${ticket.ticketNumber}</h1>
+        <p>${equipment?.name || "Equipo"} · ${ticket.problemType}</p>
+      </div>
+      <button class="soft-button" data-view="tickets">Volver a tickets</button>
+    </div>
+    <div class="grid two-col">
+      <section class="panel">
+        <div class="panel-head">
+          <div>
+            <h2>Detalle del ticket</h2>
+            <p>Última actualización: ${formatDate(ticket.updatedAt)}</p>
+          </div>
+          ${badge(ticket.status)}
+        </div>
+        <div class="meta-grid">
+          ${meta("Equipo", equipment?.name || "Sin equipo")}
+          ${meta("Urgencia", badge(ticket.urgency))}
+          ${meta("Modalidad", ticket.modality)}
+          ${meta("Técnico asignado", ticket.assignedTechnician || "Pendiente")}
+          ${meta("Creado", formatDate(ticket.createdAt))}
+          ${meta("Actualizado", formatDate(ticket.updatedAt))}
+        </div>
+        <p class="item-subtitle" style="margin-top: 18px;">${ticket.description}</p>
+      </section>
+      <section class="panel">
+        <h2>Línea de tiempo</h2>
+        <div class="timeline" style="margin-top: 16px;">
+          ${steps.map((step, index) => `
+            <div class="timeline-item ${index <= statusIndex ? "done" : ""}">
+              <div class="timeline-dot"></div>
+              <div><strong>${step}</strong><span>${index <= statusIndex ? "Completado o en curso" : "Pendiente"}</span></div>
+            </div>
+          `).join("")}
+        </div>
+      </section>
+    </div>
+    <section class="panel" style="margin-top: 16px;">
+      <div class="panel-head">
+        <div>
+          <h2>Comentarios e información adicional</h2>
+          <p>Agregá datos que ayuden a resolver la solicitud.</p>
+        </div>
+      </div>
+      <div class="activity-list">
+        ${updates.map((update) => activityRow({ date: update.createdAt, type: update.author, status: update.status, description: update.message })).join("")}
+      </div>
+      <form id="commentForm" class="form-grid" style="margin-top: 16px;">
+        <div class="field wide">
+          <label>Comentario</label>
+          <textarea name="message" required placeholder="Escribí una aclaración o información adicional."></textarea>
+        </div>
+        <div class="field">
+          <label>Adjunto opcional</label>
+          <input type="file" />
+        </div>
+        <div class="wide">
+          <button class="button" type="submit">Agregar comentario</button>
+        </div>
+      </form>
+    </section>
+  `;
+}
+
+function repairsTemplate() {
+  const repairs = companyRepairs();
+  return `
+    <div class="section-head">
+      <div>
+        <h1>Reparaciones</h1>
+        <p>Equipos dejados físicamente en el local.</p>
+      </div>
+    </div>
+    <div class="grid cards-grid">
+      ${repairs.map(repairCard).join("") || `<div class="empty-state">No hay reparaciones activas.</div>`}
+    </div>
+  `;
+}
+
+function repairCard(repair) {
+  return `
+    <article class="card">
+      <div class="item-head">
+        <div>
+          <h2 class="item-title">${repair.orderNumber}</h2>
+          <p class="item-subtitle">${getEquipment(repair.equipmentId)?.name || "Equipo"} · Ingreso ${formatDate(repair.entryDate)}</p>
+        </div>
+        ${badge(repair.status)}
+      </div>
+      <div class="meta-grid">
+        ${meta("Diagnóstico", repair.diagnosis)}
+        ${meta("Presupuesto", repair.budget || "No informado")}
+        ${meta("Técnico", repair.assignedTechnician)}
+        ${meta("Estimada", formatDate(repair.estimatedFinishDate))}
+      </div>
+      <p class="item-subtitle">${repair.notes}</p>
+    </article>
+  `;
+}
+
+function planTemplate() {
+  const company = getCompany();
+  const plan = getPlan(company.planId);
+  const available = company.includedAssistances - company.usedAssistances;
+  const progress = Math.round((company.usedAssistances / company.includedAssistances) * 100);
+  return `
+    <div class="section-head">
+      <div>
+        <h1>Plan y suscripción</h1>
+        <p>Estado del plan, asistencias y servicios incluidos.</p>
+      </div>
+      <button class="button" data-plan-upgrade>Solicitar ampliación de plan</button>
+    </div>
+    <section class="plan-band">
+      <div>
+        <h2>${plan.name}</h2>
+        <p>${plan.description} · ${plan.price}</p>
+      </div>
+      <div>
+        <strong>${company.usedAssistances} asistencias usadas de ${company.includedAssistances}</strong>
+        <div class="progress-track"><div class="progress-bar" style="width: ${progress}%"></div></div>
+      </div>
+    </section>
+    <div class="grid two-col" style="margin-top: 16px;">
+      <section class="panel">
+        <h2>Resumen</h2>
+        <div class="meta-grid">
+          ${meta("Estado del plan", badge(company.subscriptionStatus))}
+          ${meta("Inicio", formatDate(company.startDate))}
+          ${meta("Próximo vencimiento", formatDate(company.renewalDate))}
+          ${meta("Asistencias incluidas", company.includedAssistances)}
+          ${meta("Asistencias usadas", company.usedAssistances)}
+          ${meta("Asistencias disponibles", available)}
+          ${meta("Equipos permitidos", company.maxEquipment)}
+          ${meta("Equipos registrados", companyEquipment().length)}
+        </div>
+      </section>
+      <section class="panel">
+        <h2>Servicios incluidos</h2>
+        <ul class="feature-list" style="margin-top: 16px;">
+          ${plan.features.map((feature) => `<li>${feature}</li>`).join("")}
+        </ul>
+      </section>
+    </div>
+  `;
+}
+
+function historyTemplate() {
+  const logs = companyLogs().sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+  return `
+    <div class="section-head">
+      <div>
+        <h1>Historial técnico</h1>
+        <p>Historial técnico organizado para tu empresa.</p>
+      </div>
+    </div>
+    <section class="panel">
+      <div class="service-list">
+        ${logs.map((log) => `
+          <div class="service-row">
+            <div class="item-head">
+              <strong>${formatDate(log.createdAt)} · ${log.serviceType}</strong>
+              ${badge(log.status)}
+            </div>
+            <span>${getEquipment(log.equipmentId)?.name || "Empresa"} · ${log.description}</span>
+            <span>Técnico: ${log.technician}</span>
+          </div>
+        `).join("")}
+      </div>
+    </section>
+  `;
+}
+
+function contactTemplate() {
+  return `
+    <div class="section-head">
+      <div>
+        <h1>Contacto</h1>
+        <p>Soporte técnico y mantenimiento IT para empresas y PYMES.</p>
+      </div>
+    </div>
+    <section class="panel">
+      <h2>TecnoStore Empresas</h2>
+      <div class="meta-grid" style="margin-top: 16px;">
+        ${meta("WhatsApp", "266 510 5694")}
+        ${meta("Dirección", "Pringles 772, San Luis")}
+        ${meta("Instagram", "@tecnostore.sanluis")}
+        ${meta("Mensaje", "Nos ocupamos de la tecnología de tu negocio.")}
+      </div>
+      <div class="contact-actions">
+        <a class="button" href="https://wa.me/542665105694" target="_blank" rel="noreferrer">Enviar WhatsApp</a>
+        <button class="soft-button" data-view="support">Solicitar asistencia</button>
+        <a class="soft-button" href="https://www.google.com/maps/search/?api=1&query=Pringles%20772%2C%20San%20Luis" target="_blank" rel="noreferrer">Ver ubicación</a>
+      </div>
+    </section>
+  `;
+}
+
+function adminFocusNotice() {
+  if (!state.adminFocus) return "";
+  return `
+    <div class="notice show">
+      Mostrando: ${state.adminFocus.label}
+      <button class="ghost-button" type="button" data-clear-admin-focus style="min-height: 30px; margin-left: 8px;">Quitar filtro</button>
+    </div>
+  `;
+}
+
+function adminDashboardTemplate() {
+  const activeCompanies = state.companies.filter((company) => company.subscriptionStatus === "Activa").length;
+  const openTickets = state.tickets.filter(isOpenTicket);
+  const urgentTickets = state.tickets.filter(isUrgentTicket);
+  const activeRepairs = state.repairs.filter(isActiveRepair);
+  const expiring = state.companies.filter((company) => company.renewalDate <= "2026-06-05");
+  const usedAssistances = state.companies.reduce((sum, company) => sum + Number(company.usedAssistances), 0);
+  const activeUsers = state.users.filter((user) => user.active).length;
+
+  return `
+    <div class="section-head">
+      <div>
+        <h1>Panel administrador</h1>
+        <p>Vista privada para TecnoStore.</p>
+      </div>
+      <button class="button" data-admin-new-ticket>Crear ticket</button>
+    </div>
+    <div class="grid stats-grid">
+      ${statCard("Empresas activas", activeCompanies, "Ver clientes con suscripción activa", "companies-active")}
+      ${statCard("Tickets abiertos", openTickets.length, "Ver solicitudes en gestión", "tickets-open")}
+      ${statCard("Tickets urgentes", urgentTickets.length, "Ver alta o crítica", "tickets-urgent")}
+      ${statCard("Reparaciones en curso", activeRepairs.length, "Ver órdenes abiertas", "repairs-active")}
+      ${statCard("Planes próximos a vencer", expiring.length, "Ver vencimientos cercanos", "companies-expiring")}
+      ${statCard("Asistencias usadas este mes", usedAssistances, "Ver consumo por empresa", "companies-assistances")}
+      ${statCard("Usuarios activos", activeUsers, "Clientes, técnicos y ventas", "users-active")}
+    </div>
+    <section class="panel" style="margin-top: 18px;">
+      <div class="panel-head">
+        <div>
+          <h2>Acciones rápidas</h2>
+          <p>Alta comercial, usuarios y planes desde el mismo panel.</p>
+        </div>
+      </div>
+      <div class="toolbar" style="margin: 0;">
+        <button class="button" data-open-company>Nueva empresa + login</button>
+        <button class="soft-button" data-open-user>Agregar técnico o vendedor</button>
+        <button class="soft-button" data-open-plan>Crear plan</button>
+      </div>
+    </section>
+    <section class="panel" style="margin-top: 18px;">
+      <div class="panel-head">
+        <div>
+          <h2>Últimos movimientos</h2>
+          <p>Actividad reciente de tickets, reparaciones e historial.</p>
+        </div>
+      </div>
+      <div class="activity-list">
+        ${[
+          ...state.tickets.map((ticket) => ({ date: ticket.updatedAt, type: getCompany(ticket.companyId).name, status: ticket.status, description: `${ticket.ticketNumber} · ${ticket.problemType}` })),
+          ...state.repairs.map((repair) => ({ date: repair.entryDate, type: getCompany(repair.companyId).name, status: repair.status, description: `${repair.orderNumber} · ${getEquipment(repair.equipmentId)?.name || "Equipo"}` })),
+        ].sort((a, b) => b.date.localeCompare(a.date)).slice(0, 7).map(activityRow).join("")}
+      </div>
+    </section>
+  `;
+}
+
+function adminCompaniesTemplate() {
+  let companies = [...state.companies];
+  if (state.adminFocus?.type === "companies-active") {
+    companies = companies.filter((company) => company.subscriptionStatus === "Activa");
+  }
+  if (state.adminFocus?.type === "companies-expiring") {
+    companies = companies.filter((company) => company.renewalDate <= "2026-06-05");
+  }
+  if (state.adminFocus?.type === "companies-assistances") {
+    companies = companies.filter((company) => Number(company.usedAssistances) > 0);
+    companies.sort((a, b) => Number(b.usedAssistances) - Number(a.usedAssistances));
+  }
+  return `
+    <div class="section-head">
+      <div>
+        <h1>Empresas</h1>
+        <p>Crear, editar y revisar clientes empresariales.</p>
+      </div>
+      <button class="button" data-open-company>Nueva empresa</button>
+    </div>
+    ${adminFocusNotice()}
+    <div class="grid cards-grid">
+      ${companies.map((company) => {
+        const plan = getPlan(company.planId);
+        const loginUser = getCompanyUser(company.id);
+        return `
+          <article class="card">
+            <div class="item-head">
+              <div>
+                <h2 class="item-title">${company.name}</h2>
+                <p class="item-subtitle">${company.contactName} · ${company.email}</p>
+              </div>
+              ${badge(company.subscriptionStatus)}
+            </div>
+            <div class="meta-grid">
+              ${meta("Plan", plan.shortName)}
+              ${meta("Vencimiento", formatDate(company.renewalDate))}
+              ${meta("Asistencias", `${company.usedAssistances}/${company.includedAssistances}`)}
+              ${meta("Equipos", `${companyEquipment(company.id).length}/${company.maxEquipment}`)}
+              ${meta("Login cliente", loginUser ? loginUser.email : "Sin usuario")}
+            </div>
+            <p class="item-subtitle">${company.notes}</p>
+            <div class="toolbar" style="margin: 14px 0 0;">
+              <button class="soft-button" data-open-company="${company.id}">Editar</button>
+              <button class="ghost-button" data-open-user="${loginUser?.id || ""}" data-user-company="${company.id}">Login</button>
+              <button class="ghost-button" data-select-company="${company.id}">Ver como cliente</button>
+            </div>
+          </article>
+        `;
+      }).join("")}
+    </div>
+  `;
+}
+
+function adminTicketsTemplate() {
+  const filtered = state.tickets.filter((ticket) => {
+    const companyOk = state.filters.ticketCompany === "Todas" || ticket.companyId === state.filters.ticketCompany;
+    const statusOk = state.filters.ticketStatus === "Todos" || ticket.status === state.filters.ticketStatus;
+    const urgencyOk = state.filters.ticketUrgency === "Todas" || ticket.urgency === state.filters.ticketUrgency;
+    const focusOpenOk = state.adminFocus?.type !== "tickets-open" || isOpenTicket(ticket);
+    const focusUrgentOk = state.adminFocus?.type !== "tickets-urgent" || isUrgentTicket(ticket);
+    return companyOk && statusOk && urgencyOk && focusOpenOk && focusUrgentOk;
+  });
+
+  return `
+    <div class="section-head">
+      <div>
+        <h1>Gestión de tickets</h1>
+        <p>Asignar técnicos, responder y cambiar estados.</p>
+      </div>
+      <button class="button" data-admin-new-ticket>Crear ticket</button>
+    </div>
+    ${adminFocusNotice()}
+    <section class="panel">
+      <div class="toolbar">
+        <div class="filters">
+          <select data-filter="ticketCompany">
+            <option value="Todas">Todas las empresas</option>
+            ${state.companies.map((company) => `<option value="${company.id}" ${state.filters.ticketCompany === company.id ? "selected" : ""}>${company.name}</option>`).join("")}
+          </select>
+          <select data-filter="ticketStatus">
+            <option>Todos</option>
+            ${ticketStatuses.map((status) => `<option ${state.filters.ticketStatus === status ? "selected" : ""}>${status}</option>`).join("")}
+          </select>
+          <select data-filter="ticketUrgency">
+            <option>Todas</option>
+            ${["baja", "normal", "alta", "crítica"].map((urgency) => `<option ${state.filters.ticketUrgency === urgency ? "selected" : ""}>${urgency}</option>`).join("")}
+          </select>
+        </div>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Ticket</th>
+              <th>Empresa</th>
+              <th>Equipo</th>
+              <th>Urgencia</th>
+              <th>Estado</th>
+              <th>Técnico</th>
+              <th>Actualizar</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${filtered.map((ticket) => `
+              <tr>
+                <td><strong>${ticket.ticketNumber}</strong><br />${ticket.problemType}</td>
+                <td>${getCompany(ticket.companyId).name}</td>
+                <td>${getEquipment(ticket.equipmentId)?.name || "Sin equipo"}</td>
+                <td>${badge(ticket.urgency)}</td>
+                <td>${badge(ticket.status)}</td>
+                <td>${ticket.assignedTechnician || "Pendiente"}</td>
+                <td><button class="soft-button" data-admin-ticket="${ticket.id}">Gestionar</button></td>
+              </tr>
+            `).join("")}
+          </tbody>
+        </table>
+      </div>
+    </section>
+  `;
+}
+
+function adminRepairsTemplate() {
+  const repairs = state.adminFocus?.type === "repairs-active" ? state.repairs.filter(isActiveRepair) : state.repairs;
+  return `
+    <div class="section-head">
+      <div>
+        <h1>Gestión de reparaciones</h1>
+        <p>Crear órdenes, cargar diagnóstico y actualizar estados.</p>
+      </div>
+      <button class="button" data-open-repair>Crear reparación</button>
+    </div>
+    ${adminFocusNotice()}
+    <div class="grid cards-grid">
+      ${repairs.map((repair) => `
+        <article class="card">
+          <div class="item-head">
+            <div>
+              <h2 class="item-title">${repair.orderNumber}</h2>
+              <p class="item-subtitle">${getCompany(repair.companyId).name} · ${getEquipment(repair.equipmentId)?.name || "Equipo"}</p>
+            </div>
+            ${badge(repair.status)}
+          </div>
+          <div class="meta-grid">
+            ${meta("Diagnóstico", repair.diagnosis)}
+            ${meta("Presupuesto", repair.budget || "No informado")}
+            ${meta("Técnico", repair.assignedTechnician)}
+            ${meta("Entrega estimada", formatDate(repair.estimatedFinishDate))}
+          </div>
+          <div class="toolbar" style="margin: 14px 0 0;">
+            <button class="soft-button" data-open-repair="${repair.id}">Gestionar</button>
+          </div>
+        </article>
+      `).join("")}
+    </div>
+  `;
+}
+
+function adminEquipmentTemplate() {
+  return `
+    <div class="section-head">
+      <div>
+        <h1>Gestión de equipos</h1>
+        <p>Ver equipos por empresa, editar estados y consultar historial.</p>
+      </div>
+      <button class="button" data-open-equipment>Agregar equipo</button>
+    </div>
+    <div class="grid cards-grid">
+      ${state.equipment.map((item) => `
+        <article class="card">
+          <div class="item-head">
+            <div>
+              <h2 class="item-title">${item.name}</h2>
+              <p class="item-subtitle">${getCompany(item.companyId).name} · ${item.type} · ${item.brand} ${item.model}</p>
+            </div>
+            ${badge(item.status)}
+          </div>
+          <div class="meta-grid">
+            ${meta("Serie", item.serialNumber)}
+            ${meta("Sector", item.userOrSector)}
+            ${meta("Sistema", item.operatingSystem)}
+            ${meta("Último servicio", formatDate(item.lastServiceDate))}
+          </div>
+          <div class="toolbar" style="margin: 14px 0 0;">
+            <button class="soft-button" data-open-equipment="${item.id}">Editar</button>
+          </div>
+        </article>
+      `).join("")}
+    </div>
+  `;
+}
+
+function adminUsersTemplate() {
+  const users = state.adminFocus?.type === "users-active" ? state.users.filter((user) => user.active) : state.users;
+  return `
+    <div class="section-head">
+      <div>
+        <h1>Usuarios y equipo</h1>
+        <p>Alta de clientes, técnicos, vendedores y asistentes comerciales.</p>
+      </div>
+      <button class="button" data-open-user>Nuevo usuario</button>
+    </div>
+    ${adminFocusNotice()}
+    <div class="grid cards-grid">
+      ${users.map((user) => `
+        <article class="card">
+          <div class="item-head">
+            <div>
+              <h2 class="item-title">${user.name}</h2>
+              <p class="item-subtitle">${user.email} · ${user.role}</p>
+            </div>
+            ${badge(user.active ? "Activo" : "Inactivo")}
+          </div>
+          <div class="meta-grid">
+            ${meta("Empresa", user.companyId ? getCompany(user.companyId).name : "TecnoStore")}
+            ${meta("Teléfono", user.phone || "Sin teléfono")}
+            ${meta("Clave demo", user.password || "No definida")}
+            ${meta("Alta", formatDate(user.createdAt))}
+          </div>
+          <div class="toolbar" style="margin: 14px 0 0;">
+            <button class="soft-button" data-open-user="${user.id}">Editar usuario</button>
+          </div>
+        </article>
+      `).join("")}
+    </div>
+  `;
+}
+
+function adminPlansTemplate() {
+  return `
+    <div class="section-head">
+      <div>
+        <h1>Planes</h1>
+        <p>Planes base y propuestas comerciales para cerrar altas en una visita.</p>
+      </div>
+      <button class="button" data-open-plan>Crear plan</button>
+    </div>
+    <div class="grid cards-grid">
+      ${state.plans.map((plan) => `
+        <article class="card">
+          <div class="item-head">
+            <div>
+              <h2 class="item-title">${plan.name}</h2>
+              <p class="item-subtitle">${plan.description}</p>
+            </div>
+            ${badge(plan.price)}
+          </div>
+          <div class="meta-grid">
+            ${meta("Equipos permitidos", plan.maxEquipment)}
+            ${meta("Asistencias", plan.includedAssistances)}
+          </div>
+          <ul class="feature-list" style="margin-top: 16px;">
+            ${plan.features.map((feature) => `<li>${feature}</li>`).join("")}
+          </ul>
+          <div class="toolbar" style="margin: 14px 0 0;">
+            <button class="soft-button" data-open-plan="${plan.id}">Editar plan</button>
+          </div>
+        </article>
+      `).join("")}
+    </div>
+  `;
+}
+
+function bindGlobalEvents() {
+  document.querySelectorAll("[data-view]").forEach((button) => {
+    button.addEventListener("click", () => setView(button.dataset.view));
+  });
+  $("[data-toggle-role]")?.addEventListener("click", () => {
+    state.role = state.role === "admin" ? "client" : "admin";
+    saveState();
+    render();
+  });
+  $("[data-logout]")?.addEventListener("click", logout);
+}
+
+function bindLoginEvents() {
+  let selectedRole = "client";
+  document.querySelectorAll("[data-demo-role]").forEach((button) => {
+    button.addEventListener("click", () => {
+      selectedRole = button.dataset.demoRole;
+      document.querySelectorAll("[data-demo-role]").forEach((item) => item.classList.remove("active"));
+      button.classList.add("active");
+      $("#email").value = selectedRole === "admin" ? "admin@tecnostore.com" : "cliente@empresa.com";
+    });
+  });
+  $("#loginForm").addEventListener("submit", (event) => {
+    event.preventDefault();
+    login(selectedRole, $("#email").value);
+  });
+  $("[data-help]").addEventListener("click", () => {
+    alert("Demo TecnoStore Empresas. Elegí Cliente empresa o Administrador y presioná Ingresar.");
+  });
+}
+
+function bindCurrentViewEvents() {
+  document.querySelectorAll("[data-open-equipment]").forEach((button) => {
+    button.addEventListener("click", () => openEquipmentModal(button.dataset.openEquipment || ""));
+  });
+  document.querySelectorAll("[data-support-equipment]").forEach((button) => {
+    state.clientView = "support";
+    saveState();
+    render();
+    const select = document.querySelector("[name='equipmentId']");
+    if (select) select.value = button.dataset.supportEquipment;
+  });
+  document.querySelectorAll("[data-ticket-detail]").forEach((button) => {
+    button.addEventListener("click", () => {
+      state.selectedTicketId = button.dataset.ticketDetail;
+      state.clientView = "ticket-detail";
+      saveState();
+      render();
+    });
+  });
+  document.querySelectorAll("[data-equipment-history]").forEach((button) => {
+    button.addEventListener("click", () => showEquipmentHistory(button.dataset.equipmentHistory));
+  });
+  $("#ticketForm")?.addEventListener("submit", createTicket);
+  $("#commentForm")?.addEventListener("submit", addTicketComment);
+  $("[data-plan-upgrade]")?.addEventListener("click", () => {
+    alert("Solicitud registrada en demo. En la versión final se enviaría a TecnoStore para cotización.");
+  });
+  document.querySelectorAll("[data-open-company]").forEach((button) => {
+    button.addEventListener("click", () => openCompanyModal(button.dataset.openCompany || ""));
+  });
+  document.querySelectorAll("[data-open-user]").forEach((button) => {
+    button.addEventListener("click", () => openUserModal(button.dataset.openUser || "", button.dataset.userCompany || ""));
+  });
+  document.querySelectorAll("[data-open-plan]").forEach((button) => {
+    button.addEventListener("click", () => openPlanModal(button.dataset.openPlan || ""));
+  });
+  document.querySelectorAll("[data-admin-shortcut]").forEach((button) => {
+    button.addEventListener("click", () => applyAdminShortcut(button.dataset.adminShortcut));
+  });
+  $("[data-clear-admin-focus]")?.addEventListener("click", () => {
+    state.adminFocus = null;
+    saveState();
+    render();
+  });
+  document.querySelectorAll("[data-select-company]").forEach((button) => {
+    button.addEventListener("click", () => {
+      state.currentCompanyId = button.dataset.selectCompany;
+      state.role = "client";
+      state.clientView = "dashboard";
+      saveState();
+      render();
+    });
+  });
+  document.querySelectorAll("[data-filter]").forEach((filter) => {
+    filter.addEventListener("change", () => {
+      state.filters[filter.dataset.filter] = filter.value;
+      saveState();
+      render();
+    });
+  });
+  document.querySelectorAll("[data-admin-ticket]").forEach((button) => {
+    button.addEventListener("click", () => openTicketAdminModal(button.dataset.adminTicket));
+  });
+  document.querySelectorAll("[data-admin-new-ticket]").forEach((button) => {
+    button.addEventListener("click", () => openTicketAdminModal(""));
+  });
+  document.querySelectorAll("[data-open-repair]").forEach((button) => {
+    button.addEventListener("click", () => openRepairModal(button.dataset.openRepair || ""));
+  });
+}
+
+function applyAdminShortcut(shortcut) {
+  const shortcuts = {
+    "companies-active": {
+      view: "admin-companies",
+      focus: { type: "companies-active", label: "empresas activas" },
+    },
+    "companies-expiring": {
+      view: "admin-companies",
+      focus: { type: "companies-expiring", label: "planes próximos a vencer" },
+    },
+    "companies-assistances": {
+      view: "admin-companies",
+      focus: { type: "companies-assistances", label: "consumo mensual de asistencias" },
+    },
+    "tickets-open": {
+      view: "admin-tickets",
+      focus: { type: "tickets-open", label: "tickets abiertos" },
+    },
+    "tickets-urgent": {
+      view: "admin-tickets",
+      focus: { type: "tickets-urgent", label: "tickets urgentes" },
+    },
+    "repairs-active": {
+      view: "admin-repairs",
+      focus: { type: "repairs-active", label: "reparaciones en curso" },
+    },
+    "users-active": {
+      view: "admin-users",
+      focus: { type: "users-active", label: "usuarios activos" },
+    },
+  };
+  const next = shortcuts[shortcut];
+  if (!next) return;
+  state.adminView = next.view;
+  state.adminFocus = next.focus;
+  saveState();
+  render();
+}
+
+function createTicket(event) {
+  event.preventDefault();
+  const form = new FormData(event.target);
+  const ticketNumber = `TK-2026-${String(state.tickets.length + 21).padStart(4, "0")}`;
+  const today = "2026-05-18";
+  const ticket = {
+    id: uid("t"),
+    companyId: state.currentCompanyId,
+    equipmentId: form.get("equipmentId"),
+    ticketNumber,
+    problemType: form.get("problemType"),
+    urgency: form.get("urgency"),
+    modality: form.get("modality"),
+    description: form.get("description"),
+    status: "Recibido",
+    assignedTechnician: "Pendiente",
+    customerComments: form.get("availability") ? [`Horario disponible: ${form.get("availability")}`] : [],
+    internalNotes: "",
+    createdAt: today,
+    updatedAt: today,
+  };
+  state.tickets.unshift(ticket);
+  state.ticketUpdates.push({
+    id: uid("u"),
+    ticketId: ticket.id,
+    status: "Recibido",
+    message: "Ticket creado por el cliente.",
+    author: "Cliente",
+    visibleToClient: true,
+    createdAt: today,
+  });
+  saveState();
+  event.target.reset();
+  $("#supportNotice").classList.add("show");
+}
+
+function addTicketComment(event) {
+  event.preventDefault();
+  const ticket = state.tickets.find((item) => item.id === state.selectedTicketId);
+  const message = new FormData(event.target).get("message");
+  if (!ticket || !message) return;
+  state.ticketUpdates.push({
+    id: uid("u"),
+    ticketId: ticket.id,
+    status: ticket.status,
+    message,
+    author: "Cliente",
+    visibleToClient: true,
+    createdAt: "2026-05-18",
+  });
+  ticket.updatedAt = "2026-05-18";
+  saveState();
+  render();
+}
+
+function openModal(html) {
+  const dialog = $("#modal");
+  dialog.innerHTML = html;
+  dialog.showModal();
+  dialog.querySelectorAll("[data-close-modal]").forEach((button) => button.addEventListener("click", () => dialog.close()));
+}
+
+function openEquipmentModal(id) {
+  const item = state.equipment.find((equipment) => equipment.id === id);
+  const companies = state.role === "admin" ? state.companies : [getCompany()];
+  openModal(`
+    <form class="modal" id="equipmentForm">
+      <div class="modal-head">
+        <div>
+          <h2>${item ? "Editar equipo" : "Agregar equipo"}</h2>
+          <p>Datos básicos del activo de la empresa.</p>
+        </div>
+        <button class="icon-button" type="button" data-close-modal>×</button>
+      </div>
+      <input type="hidden" name="id" value="${item?.id || ""}" />
+      <div class="form-grid">
+        <div class="field">
+          <label>Empresa</label>
+          <select name="companyId">${companies.map((company) => `<option value="${company.id}" ${item?.companyId === company.id ? "selected" : ""}>${company.name}</option>`).join("")}</select>
+        </div>
+        <div class="field"><label>Nombre</label><input name="name" required value="${item?.name || ""}" /></div>
+        <div class="field"><label>Tipo</label><select name="type">${["PC", "notebook", "impresora", "red", "servidor", "otro"].map((type) => `<option ${item?.type === type ? "selected" : ""}>${type}</option>`).join("")}</select></div>
+        <div class="field"><label>Marca</label><input name="brand" value="${item?.brand || ""}" /></div>
+        <div class="field"><label>Modelo</label><input name="model" value="${item?.model || ""}" /></div>
+        <div class="field"><label>Número de serie</label><input name="serialNumber" value="${item?.serialNumber || ""}" /></div>
+        <div class="field"><label>Sector o área</label><input name="userOrSector" value="${item?.userOrSector || ""}" /></div>
+        <div class="field"><label>Sistema operativo</label><input name="operatingSystem" value="${item?.operatingSystem || ""}" /></div>
+        <div class="field"><label>Estado</label><select name="status">${equipmentStatuses.map((status) => `<option ${item?.status === status ? "selected" : ""}>${status}</option>`).join("")}</select></div>
+        <div class="field"><label>Último servicio</label><input type="date" name="lastServiceDate" value="${item?.lastServiceDate || "2026-05-18"}" /></div>
+        <div class="field wide"><label>Observaciones</label><textarea name="notes">${item?.notes || ""}</textarea></div>
+      </div>
+      <div class="toolbar" style="margin: 12px 0 0;">
+        <button class="button" type="submit">Guardar equipo</button>
+        <button class="ghost-button" type="button" data-close-modal>Cancelar</button>
+      </div>
+    </form>
+  `);
+  $("#equipmentForm").addEventListener("submit", saveEquipment);
+}
+
+function saveEquipment(event) {
+  event.preventDefault();
+  const form = Object.fromEntries(new FormData(event.target).entries());
+  const existing = state.equipment.find((item) => item.id === form.id);
+  const payload = {
+    ...form,
+    id: form.id || uid("e"),
+    createdAt: existing?.createdAt || "2026-05-18",
+  };
+  if (existing) Object.assign(existing, payload);
+  else state.equipment.push(payload);
+  saveState();
+  $("#modal").close();
+  render();
+}
+
+function showEquipmentHistory(equipmentId) {
+  const item = getEquipment(equipmentId);
+  const logs = state.serviceLogs.filter((log) => log.equipmentId === equipmentId);
+  openModal(`
+    <div class="modal">
+      <div class="modal-head">
+        <div>
+          <h2>${item?.name || "Equipo"}</h2>
+          <p>Historial del equipo.</p>
+        </div>
+        <button class="icon-button" type="button" data-close-modal>×</button>
+      </div>
+      <div class="service-list">
+        ${logs.length ? logs.map((log) => `
+          <div class="service-row">
+            <strong>${formatDate(log.createdAt)} · ${log.serviceType}</strong>
+            <span>${log.description}</span>
+            <span>Técnico: ${log.technician}</span>
+          </div>
+        `).join("") : `<div class="empty-state">Todavía no hay historial para este equipo.</div>`}
+      </div>
+    </div>
+  `);
+}
+
+function openCompanyModal(id) {
+  const company = state.companies.find((item) => item.id === id);
+  const loginUser = company ? getCompanyUser(company.id) : null;
+  openModal(`
+    <form class="modal" id="companyForm">
+      <div class="modal-head">
+        <div>
+          <h2>${company ? "Editar empresa" : "Nueva empresa"}</h2>
+          <p>Datos comerciales y del plan contratado.</p>
+        </div>
+        <button class="icon-button" type="button" data-close-modal>×</button>
+      </div>
+      <input type="hidden" name="id" value="${company?.id || ""}" />
+      <div class="form-grid">
+        <div class="field"><label>Nombre empresa</label><input name="name" required value="${company?.name || ""}" /></div>
+        <div class="field"><label>CUIT opcional</label><input name="cuit" value="${company?.cuit || ""}" /></div>
+        <div class="field"><label>Contacto principal</label><input name="contactName" value="${company?.contactName || ""}" /></div>
+        <div class="field"><label>Teléfono</label><input name="phone" value="${company?.phone || ""}" /></div>
+        <div class="field"><label>Email</label><input name="email" type="email" value="${company?.email || ""}" /></div>
+        <div class="field"><label>Dirección</label><input name="address" value="${company?.address || ""}" /></div>
+        <div class="field"><label>Plan contratado</label><select name="planId">${state.plans.map((plan) => `<option value="${plan.id}" ${company?.planId === plan.id ? "selected" : ""}>${plan.name}</option>`).join("")}</select></div>
+        <div class="field"><label>Estado de suscripción</label><select name="subscriptionStatus">${subscriptionStatuses.map((status) => `<option ${company?.subscriptionStatus === status ? "selected" : ""}>${status}</option>`).join("")}</select></div>
+        <div class="field"><label>Fecha de inicio</label><input type="date" name="startDate" value="${company?.startDate || "2026-05-18"}" /></div>
+        <div class="field"><label>Fecha de vencimiento</label><input type="date" name="renewalDate" value="${company?.renewalDate || "2026-06-18"}" /></div>
+        <div class="field"><label>Asistencias incluidas</label><input type="number" name="includedAssistances" value="${company?.includedAssistances || 10}" /></div>
+        <div class="field"><label>Asistencias usadas</label><input type="number" name="usedAssistances" value="${company?.usedAssistances || 0}" /></div>
+        <div class="field"><label>Equipos permitidos</label><input type="number" name="maxEquipment" value="${company?.maxEquipment || 10}" /></div>
+        <div class="field"><label>Login cliente</label><input name="loginEmail" type="email" value="${loginUser?.email || company?.email || ""}" /></div>
+        <div class="field"><label>Clave provisoria</label><input name="loginPassword" value="${loginUser?.password || "demo1234"}" /></div>
+        <div class="field wide"><label>Notas internas</label><textarea name="notes">${company?.notes || ""}</textarea></div>
+      </div>
+      <div class="toolbar" style="margin: 12px 0 0;">
+        <button class="button" type="submit">Guardar empresa</button>
+        <button class="ghost-button" type="button" data-close-modal>Cancelar</button>
+      </div>
+    </form>
+  `);
+  $("#companyForm").addEventListener("submit", saveCompany);
+}
+
+function saveCompany(event) {
+  event.preventDefault();
+  const form = Object.fromEntries(new FormData(event.target).entries());
+  const existing = state.companies.find((company) => company.id === form.id);
+  const plan = getPlan(form.planId);
+  const payload = {
+    id: form.id || uid("c"),
+    name: form.name,
+    cuit: form.cuit,
+    contactName: form.contactName,
+    phone: form.phone,
+    email: form.email,
+    address: form.address,
+    planId: form.planId,
+    subscriptionStatus: form.subscriptionStatus,
+    startDate: form.startDate,
+    renewalDate: form.renewalDate,
+    includedAssistances: Number(form.includedAssistances),
+    usedAssistances: Number(form.usedAssistances),
+    maxEquipment: Number(form.maxEquipment),
+    notes: form.notes,
+    createdAt: existing?.createdAt || "2026-05-18",
+  };
+  if (existing) Object.assign(existing, payload);
+  else state.companies.push(payload);
+  if (plan && !existing) {
+    payload.includedAssistances = Number(form.includedAssistances || plan.includedAssistances);
+    payload.maxEquipment = Number(form.maxEquipment || plan.maxEquipment);
+  }
+  let loginUser = getCompanyUser(payload.id);
+  if (!loginUser) {
+    loginUser = {
+      id: uid("u"),
+      role: "Cliente empresa",
+      companyId: payload.id,
+      active: true,
+      createdAt: "2026-05-18",
+    };
+    state.users.push(loginUser);
+  }
+  Object.assign(loginUser, {
+    name: form.contactName || form.name,
+    email: form.loginEmail || form.email,
+    password: form.loginPassword || "demo1234",
+    phone: form.phone,
+  });
+  saveState();
+  $("#modal").close();
+  render();
+}
+
+function openUserModal(id, presetCompanyId = "") {
+  const user = state.users.find((item) => item.id === id);
+  const companyId = user?.companyId || presetCompanyId || "";
+  openModal(`
+    <form class="modal" id="userForm">
+      <div class="modal-head">
+        <div>
+          <h2>${user ? "Editar usuario" : "Nuevo usuario"}</h2>
+          <p>Acceso demo para clientes, técnicos, vendedores y asistentes comerciales.</p>
+        </div>
+        <button class="icon-button" type="button" data-close-modal>×</button>
+      </div>
+      <input type="hidden" name="id" value="${user?.id || ""}" />
+      <div class="form-grid">
+        <div class="field"><label>Nombre</label><input name="name" required value="${user?.name || ""}" /></div>
+        <div class="field"><label>Email de acceso</label><input name="email" type="email" required value="${user?.email || ""}" /></div>
+        <div class="field"><label>Clave provisoria</label><input name="password" value="${user?.password || "demo1234"}" /></div>
+        <div class="field"><label>Teléfono</label><input name="phone" value="${user?.phone || ""}" /></div>
+        <div class="field">
+          <label>Rol</label>
+          <select name="role">
+            ${["Cliente empresa", ...internalRoles].map((role) => `<option ${user?.role === role ? "selected" : ""}>${role}</option>`).join("")}
+          </select>
+        </div>
+        <div class="field">
+          <label>Empresa asociada</label>
+          <select name="companyId">
+            <option value="">TecnoStore / interno</option>
+            ${state.companies.map((company) => `<option value="${company.id}" ${companyId === company.id ? "selected" : ""}>${company.name}</option>`).join("")}
+          </select>
+        </div>
+        <div class="field"><label>Estado</label><select name="active"><option value="true" ${user?.active !== false ? "selected" : ""}>Activo</option><option value="false" ${user?.active === false ? "selected" : ""}>Inactivo</option></select></div>
+      </div>
+      <div class="toolbar" style="margin: 12px 0 0;">
+        <button class="button" type="submit">Guardar usuario</button>
+        <button class="ghost-button" type="button" data-close-modal>Cancelar</button>
+      </div>
+    </form>
+  `);
+  $("#userForm").addEventListener("submit", saveUser);
+}
+
+function saveUser(event) {
+  event.preventDefault();
+  const form = Object.fromEntries(new FormData(event.target).entries());
+  let user = state.users.find((item) => item.id === form.id);
+  if (!user) {
+    user = {
+      id: uid("u"),
+      createdAt: "2026-05-18",
+    };
+    state.users.push(user);
+  }
+  Object.assign(user, {
+    name: form.name,
+    email: form.email,
+    password: form.password || "demo1234",
+    phone: form.phone,
+    role: form.role,
+    companyId: form.role === "Cliente empresa" ? form.companyId : "",
+    active: form.active === "true",
+  });
+  saveState();
+  $("#modal").close();
+  render();
+}
+
+function openPlanModal(id) {
+  const plan = state.plans.find((item) => item.id === id);
+  openModal(`
+    <form class="modal" id="planForm">
+      <div class="modal-head">
+        <div>
+          <h2>${plan ? "Editar plan" : "Crear plan"}</h2>
+          <p>El asistente comercial puede cargar una propuesta y usarla al alta del cliente.</p>
+        </div>
+        <button class="icon-button" type="button" data-close-modal>×</button>
+      </div>
+      <input type="hidden" name="id" value="${plan?.id || ""}" />
+      <div class="form-grid">
+        <div class="field"><label>Nombre del plan</label><input name="name" required value="${plan?.name || ""}" /></div>
+        <div class="field"><label>Nombre corto</label><input name="shortName" required value="${plan?.shortName || ""}" /></div>
+        <div class="field"><label>Precio</label><input name="price" required value="${plan?.price || ""}" /></div>
+        <div class="field"><label>Equipos permitidos</label><input type="number" name="maxEquipment" value="${plan?.maxEquipment || 5}" /></div>
+        <div class="field"><label>Asistencias incluidas</label><input type="number" name="includedAssistances" value="${plan?.includedAssistances || 5}" /></div>
+        <div class="field wide"><label>Descripción</label><textarea name="description">${plan?.description || ""}</textarea></div>
+        <div class="field wide"><label>Servicios incluidos</label><textarea name="features" placeholder="Un servicio por línea">${plan?.features?.join("\n") || ""}</textarea></div>
+      </div>
+      <div class="toolbar" style="margin: 12px 0 0;">
+        <button class="button" type="submit">Guardar plan</button>
+        <button class="ghost-button" type="button" data-close-modal>Cancelar</button>
+      </div>
+    </form>
+  `);
+  $("#planForm").addEventListener("submit", savePlan);
+}
+
+function savePlan(event) {
+  event.preventDefault();
+  const form = Object.fromEntries(new FormData(event.target).entries());
+  let plan = state.plans.find((item) => item.id === form.id);
+  if (!plan) {
+    plan = { id: uid("plan") };
+    state.plans.push(plan);
+  }
+  Object.assign(plan, {
+    name: form.name,
+    shortName: form.shortName,
+    price: form.price,
+    description: form.description,
+    maxEquipment: Number(form.maxEquipment),
+    includedAssistances: Number(form.includedAssistances),
+    features: form.features.split("\n").map((feature) => feature.trim()).filter(Boolean),
+  });
+  saveState();
+  $("#modal").close();
+  render();
+}
+
+function openTicketAdminModal(id) {
+  const ticket = state.tickets.find((item) => item.id === id);
+  const companyId = ticket?.companyId || state.currentCompanyId;
+  const equipmentOptions = equipmentOptionsForCompany(companyId, ticket?.equipmentId || "other", true);
+  openModal(`
+    <form class="modal" id="adminTicketForm">
+      <div class="modal-head">
+        <div>
+          <h2>${ticket ? "Gestionar ticket" : "Crear ticket"}</h2>
+          <p>Cambiar estado, técnico y respuesta al cliente.</p>
+        </div>
+        <button class="icon-button" type="button" data-close-modal>×</button>
+      </div>
+      <input type="hidden" name="id" value="${ticket?.id || ""}" />
+      <div class="form-grid">
+        <div class="field"><label>Empresa</label><select name="companyId" data-ticket-company-select>${state.companies.map((company) => `<option value="${company.id}" ${companyId === company.id ? "selected" : ""}>${company.name}</option>`).join("")}</select></div>
+        <div class="field"><label>Equipo</label><select name="equipmentId">${equipmentOptions}</select></div>
+        <div class="field"><label>Problema</label><input name="problemType" value="${ticket?.problemType || "otro"}" /></div>
+        <div class="field"><label>Urgencia</label><select name="urgency">${["baja", "normal", "alta", "crítica"].map((urgency) => `<option ${ticket?.urgency === urgency ? "selected" : ""}>${urgency}</option>`).join("")}</select></div>
+        <div class="field"><label>Modalidad</label><select name="modality">${["remoto", "presencial", "indiferente"].map((mode) => `<option ${ticket?.modality === mode ? "selected" : ""}>${mode}</option>`).join("")}</select></div>
+        <div class="field"><label>Estado</label><select name="status">${ticketStatuses.map((status) => `<option ${ticket?.status === status ? "selected" : ""}>${status}</option>`).join("")}</select></div>
+        <div class="field"><label>Técnico asignado</label><select name="assignedTechnician">${technicianOptions(ticket?.assignedTechnician || "")}</select></div>
+        <div class="field"><label>Descontar asistencia</label><select name="discount"><option value="no">No</option><option value="yes">Sí</option></select></div>
+        <div class="field wide"><label>Descripción</label><textarea name="description">${ticket?.description || ""}</textarea></div>
+        <div class="field wide"><label>Respuesta visible al cliente</label><textarea name="response" placeholder="Escribí una actualización para el cliente."></textarea></div>
+        <div class="field wide"><label>Observaciones internas</label><textarea name="internalNotes">${ticket?.internalNotes || ""}</textarea></div>
+      </div>
+      <div class="toolbar" style="margin: 12px 0 0;">
+        <button class="button" type="submit">Guardar ticket</button>
+        <button class="ghost-button" type="button" data-close-modal>Cancelar</button>
+      </div>
+    </form>
+  `);
+  $("[data-ticket-company-select]").addEventListener("change", (event) => {
+    $("#adminTicketForm [name='equipmentId']").innerHTML = equipmentOptionsForCompany(event.target.value, "other", true);
+  });
+  $("#adminTicketForm").addEventListener("submit", saveAdminTicket);
+}
+
+function saveAdminTicket(event) {
+  event.preventDefault();
+  const form = Object.fromEntries(new FormData(event.target).entries());
+  let ticket = state.tickets.find((item) => item.id === form.id);
+  const today = "2026-05-18";
+  if (!ticket) {
+    ticket = {
+      id: uid("t"),
+      ticketNumber: `TK-2026-${String(state.tickets.length + 21).padStart(4, "0")}`,
+      customerComments: [],
+      createdAt: today,
+    };
+    state.tickets.unshift(ticket);
+  }
+  Object.assign(ticket, {
+    companyId: form.companyId,
+    equipmentId: form.equipmentId,
+    problemType: form.problemType,
+    urgency: form.urgency,
+    modality: form.modality,
+    description: form.description,
+    status: form.status,
+    assignedTechnician: form.assignedTechnician,
+    internalNotes: form.internalNotes,
+    updatedAt: today,
+  });
+  if (form.response) {
+    state.ticketUpdates.push({
+      id: uid("u"),
+      ticketId: ticket.id,
+      status: ticket.status,
+      message: form.response,
+      author: "TecnoStore",
+      visibleToClient: true,
+      createdAt: today,
+    });
+  }
+  if (form.discount === "yes") {
+    const company = getCompany(form.companyId);
+    company.usedAssistances = Number(company.usedAssistances) + 1;
+  }
+  saveState();
+  $("#modal").close();
+  render();
+}
+
+function openRepairModal(id) {
+  const repair = state.repairs.find((item) => item.id === id);
+  const repairCompanyId = repair?.companyId || state.currentCompanyId;
+  openModal(`
+    <form class="modal" id="repairForm">
+      <div class="modal-head">
+        <div>
+          <h2>${repair ? "Gestionar reparación" : "Crear reparación"}</h2>
+          <p>Orden, diagnóstico, presupuesto y estado.</p>
+        </div>
+        <button class="icon-button" type="button" data-close-modal>×</button>
+      </div>
+      <input type="hidden" name="id" value="${repair?.id || ""}" />
+      <div class="form-grid">
+        <div class="field"><label>Empresa</label><select name="companyId" data-repair-company-select>${state.companies.map((company) => `<option value="${company.id}" ${repairCompanyId === company.id ? "selected" : ""}>${company.name}</option>`).join("")}</select></div>
+        <div class="field"><label>Equipo</label><select name="equipmentId">${equipmentOptionsForCompany(repairCompanyId, repair?.equipmentId || "", false)}</select></div>
+        <div class="field"><label>Estado</label><select name="status">${repairStatuses.map((status) => `<option ${repair?.status === status ? "selected" : ""}>${status}</option>`).join("")}</select></div>
+        <div class="field"><label>Técnico asignado</label><select name="assignedTechnician">${technicianOptions(repair?.assignedTechnician || "")}</select></div>
+        <div class="field"><label>Presupuesto</label><input name="budget" value="${repair?.budget || ""}" /></div>
+        <div class="field"><label>Aprobado</label><select name="approved"><option value="false">No</option><option value="true" ${repair?.approved ? "selected" : ""}>Sí</option></select></div>
+        <div class="field"><label>Fecha de ingreso</label><input type="date" name="entryDate" value="${repair?.entryDate || "2026-05-18"}" /></div>
+        <div class="field"><label>Finalización estimada</label><input type="date" name="estimatedFinishDate" value="${repair?.estimatedFinishDate || "2026-05-25"}" /></div>
+        <div class="field wide"><label>Diagnóstico</label><textarea name="diagnosis">${repair?.diagnosis || ""}</textarea></div>
+        <div class="field wide"><label>Observaciones</label><textarea name="notes">${repair?.notes || ""}</textarea></div>
+      </div>
+      <div class="toolbar" style="margin: 12px 0 0;">
+        <button class="button" type="submit">Guardar reparación</button>
+        <button class="ghost-button" type="button" data-close-modal>Cancelar</button>
+      </div>
+    </form>
+  `);
+  $("[data-repair-company-select]").addEventListener("change", (event) => {
+    $("#repairForm [name='equipmentId']").innerHTML = equipmentOptionsForCompany(event.target.value, "", false);
+  });
+  $("#repairForm").addEventListener("submit", saveRepair);
+}
+
+function saveRepair(event) {
+  event.preventDefault();
+  const form = Object.fromEntries(new FormData(event.target).entries());
+  let repair = state.repairs.find((item) => item.id === form.id);
+  if (!repair) {
+    repair = {
+      id: uid("r"),
+      orderNumber: `OR-2026-${String(state.repairs.length + 43).padStart(4, "0")}`,
+      deliveredDate: "",
+      createdAt: "2026-05-18",
+    };
+    state.repairs.unshift(repair);
+  }
+  Object.assign(repair, {
+    companyId: form.companyId,
+    equipmentId: form.equipmentId,
+    status: form.status,
+    diagnosis: form.diagnosis,
+    budget: form.budget,
+    approved: form.approved === "true",
+    assignedTechnician: form.assignedTechnician,
+    notes: form.notes,
+    entryDate: form.entryDate,
+    estimatedFinishDate: form.estimatedFinishDate,
+  });
+  const equipment = getEquipment(form.equipmentId);
+  if (equipment) equipment.status = ["Entregado", "Cancelado"].includes(form.status) ? "Activo" : "En reparación";
+  saveState();
+  $("#modal").close();
+  render();
+}
+
+function init() {
+  if (!state.loggedIn) {
+    $("#app").innerHTML = loginTemplate();
+    bindLoginEvents();
+    return;
+  }
+  render();
+}
+
+window.resetTecnoStoreDemo = resetDemo;
+
+init();
