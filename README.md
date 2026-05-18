@@ -37,7 +37,7 @@ firebase deploy --only firestore
 
 ## Logo
 
-El logo real está en `assets/logo.png` y ya se usa en login, barra superior y sidebar.
+El logo real está en `public/assets/logo.png` para que Vercel lo publique en producción. También queda una copia en `assets/logo.png` como respaldo local.
 
 ## Usuarios demo
 
