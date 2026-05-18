@@ -609,15 +609,19 @@ function setView(view) {
   window.scrollTo({ top: 0, behavior: "smooth" });
 }
 
-function login(role, email = "") {
+function login(email = "") {
   const user = state.users.find((item) => item.email.toLowerCase() === email.toLowerCase() && item.active);
+  if (email && !user) {
+    alert("No encontramos un usuario activo con ese email. Revisá el dato o pedí ayuda a TecnoStore.");
+    return;
+  }
   state.loggedIn = true;
   if (user?.role === "Cliente empresa") {
     state.role = "client";
     state.currentCompanyId = user.companyId || state.currentCompanyId;
     state.clientView = "dashboard";
   } else {
-    state.role = role === "client" ? "client" : "admin";
+    state.role = user ? "admin" : "client";
     if (state.role === "admin") state.adminView = "admin-dashboard";
     else state.clientView = "dashboard";
   }
@@ -665,10 +669,6 @@ function loginTemplate() {
           </div>
           <h2>Ingresar</h2>
           <p>Portal de soporte técnico para empresas y PYMES.</p>
-          <div class="demo-switch">
-            <button type="button" class="active" data-demo-role="client">Cliente empresa</button>
-            <button type="button" data-demo-role="admin">Administrador</button>
-          </div>
           <div class="field">
             <label for="email">Email</label>
             <input id="email" type="email" value="cliente@empresa.com" autocomplete="email" />
@@ -681,7 +681,7 @@ function loginTemplate() {
             <button class="button" type="submit">Ingresar</button>
             <button class="ghost-button" type="button" data-help>¿Necesitás ayuda?</button>
           </div>
-          <p class="helper-text">Demo sin base de datos. Podés probar como cliente o administrador y los cambios se guardan solo en este navegador.</p>
+          <p class="helper-text">Ingresá con tu email asignado por TecnoStore Empresas.</p>
         </form>
       </section>
     </main>
@@ -735,7 +735,6 @@ function shellTemplate() {
           </div>
           <div class="topbar-actions">
             <span class="role-pill">${state.role === "admin" ? "Administrador TecnoStore" : company.name}</span>
-            <button class="soft-button" type="button" data-toggle-role>${state.role === "admin" ? "Ver cliente" : "Ver admin"}</button>
             <button class="icon-button" type="button" data-logout title="Salir">×</button>
           </div>
         </header>
@@ -1565,30 +1564,16 @@ function bindGlobalEvents() {
   document.querySelectorAll("[data-view]").forEach((button) => {
     button.addEventListener("click", () => setView(button.dataset.view));
   });
-  $("[data-toggle-role]")?.addEventListener("click", () => {
-    state.role = state.role === "admin" ? "client" : "admin";
-    saveState();
-    render();
-  });
   $("[data-logout]")?.addEventListener("click", logout);
 }
 
 function bindLoginEvents() {
-  let selectedRole = "client";
-  document.querySelectorAll("[data-demo-role]").forEach((button) => {
-    button.addEventListener("click", () => {
-      selectedRole = button.dataset.demoRole;
-      document.querySelectorAll("[data-demo-role]").forEach((item) => item.classList.remove("active"));
-      button.classList.add("active");
-      $("#email").value = selectedRole === "admin" ? "admin@tecnostore.com" : "cliente@empresa.com";
-    });
-  });
   $("#loginForm").addEventListener("submit", (event) => {
     event.preventDefault();
-    login(selectedRole, $("#email").value);
+    login($("#email").value);
   });
   $("[data-help]").addEventListener("click", () => {
-    alert("Demo TecnoStore Empresas. Elegí Cliente empresa o Administrador y presioná Ingresar.");
+    alert("Solicitá a TecnoStore Empresas el alta de tu usuario o el restablecimiento de contraseña.");
   });
 }
 

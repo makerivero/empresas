@@ -264,28 +264,6 @@ button {
   margin-top: 22px;
 }
 
-.demo-switch {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 8px;
-  margin: 22px 0 0;
-}
-
-.demo-switch button {
-  border: 1px solid var(--line);
-  border-radius: var(--radius);
-  background: #f8fbff;
-  color: var(--navy);
-  padding: 12px 10px;
-  font-weight: 800;
-}
-
-.demo-switch button.active {
-  border-color: var(--blue);
-  background: var(--soft-blue);
-  color: var(--blue);
-}
-
 .helper-text {
   margin-top: 18px;
   color: var(--muted);
