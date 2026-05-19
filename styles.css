@@ -47,16 +47,54 @@ button {
 }
 
 .login-shell {
+  position: relative;
+  overflow: hidden;
   display: grid;
   min-height: 100vh;
   grid-template-columns: minmax(0, 1fr);
   background:
     linear-gradient(135deg, rgba(6, 26, 58, 0.96), rgba(0, 107, 214, 0.86)),
-    radial-gradient(circle at 78% 16%, rgba(255, 255, 255, 0.28), transparent 28%),
     var(--navy);
 }
 
+.login-shell::before {
+  content: "";
+  position: absolute;
+  inset: -20%;
+  background:
+    linear-gradient(90deg, rgba(255, 255, 255, 0.08) 1px, transparent 1px),
+    linear-gradient(0deg, rgba(255, 255, 255, 0.08) 1px, transparent 1px),
+    linear-gradient(120deg, transparent 0 48%, rgba(0, 140, 255, 0.22) 49% 51%, transparent 52% 100%);
+  background-size: 72px 72px, 72px 72px, 360px 360px;
+  opacity: 0.55;
+  animation: techDrift 20s linear infinite;
+}
+
+.login-shell::after {
+  content: "";
+  position: absolute;
+  width: 48vw;
+  height: 2px;
+  left: -20vw;
+  top: 30%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.75), transparent);
+  animation: scanLine 6s ease-in-out infinite;
+}
+
+@keyframes techDrift {
+  from { transform: translate3d(0, 0, 0); }
+  to { transform: translate3d(72px, 72px, 0); }
+}
+
+@keyframes scanLine {
+  0%, 100% { transform: translateX(0); opacity: 0; }
+  18%, 70% { opacity: 0.75; }
+  100% { transform: translateX(150vw); }
+}
+
 .login-visual {
+  position: relative;
+  z-index: 1;
   display: none;
   color: white;
   padding: 56px;
@@ -104,6 +142,8 @@ button {
 }
 
 .login-panel {
+  position: relative;
+  z-index: 1;
   display: grid;
   align-items: center;
   justify-items: center;
@@ -274,6 +314,9 @@ button {
 .app-shell {
   min-height: 100vh;
   padding-bottom: 74px;
+  background:
+    linear-gradient(180deg, rgba(231, 242, 255, 0.68), rgba(244, 247, 251, 0) 260px),
+    var(--bg);
 }
 
 .sidebar {
@@ -303,6 +346,50 @@ button {
   display: flex;
   align-items: center;
   gap: 10px;
+}
+
+.notification-button {
+  position: relative;
+  display: inline-grid;
+  width: 42px;
+  min-height: 42px;
+  place-items: center;
+  border: 1px solid rgba(0, 140, 255, 0.22);
+  border-radius: var(--radius);
+  background: linear-gradient(135deg, #ffffff, #e9f5ff);
+  color: var(--blue);
+  font-weight: 900;
+}
+
+.notification-button span {
+  display: grid;
+  width: 22px;
+  height: 22px;
+  place-items: center;
+  border-radius: 999px;
+  background: var(--blue);
+  color: white;
+}
+
+.notification-button strong {
+  position: absolute;
+  right: -5px;
+  top: -7px;
+  display: grid;
+  min-width: 20px;
+  height: 20px;
+  place-items: center;
+  border-radius: 999px;
+  background: var(--danger);
+  color: white;
+  font-size: 11px;
+  box-shadow: 0 0 0 3px white;
+  animation: softPulse 1.8s ease-in-out infinite;
+}
+
+@keyframes softPulse {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.08); }
 }
 
 .role-pill {
@@ -379,8 +466,33 @@ button {
 }
 
 .stat-card {
+  position: relative;
+  overflow: hidden;
   padding: 16px;
   text-align: left;
+  background:
+    linear-gradient(135deg, rgba(255, 255, 255, 0.96), rgba(247, 251, 255, 0.94)),
+    var(--surface);
+  transition: border-color 0.18s ease, transform 0.18s ease, box-shadow 0.18s ease;
+}
+
+.stat-card::before {
+  content: "";
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 5px;
+  background: var(--blue);
+}
+
+.stat-card::after {
+  content: "";
+  position: absolute;
+  width: 92px;
+  height: 92px;
+  right: -42px;
+  top: -42px;
+  border-radius: 999px;
+  background: rgba(0, 107, 214, 0.08);
 }
 
 .stat-action {
@@ -391,7 +503,16 @@ button {
 .stat-action:hover {
   border-color: var(--electric);
   transform: translateY(-1px);
+  box-shadow: 0 18px 42px rgba(6, 26, 58, 0.12);
 }
+
+.stat-card.tone-success::before { background: var(--success); }
+.stat-card.tone-warning::before { background: var(--warning); }
+.stat-card.tone-danger::before { background: var(--danger); }
+.stat-card.tone-blue::before { background: var(--electric); }
+.stat-card.tone-success::after { background: rgba(22, 163, 74, 0.10); }
+.stat-card.tone-warning::after { background: rgba(245, 158, 11, 0.13); }
+.stat-card.tone-danger::after { background: rgba(220, 38, 38, 0.11); }
 
 .stat-card span {
   display: block;
@@ -606,6 +727,91 @@ button {
 
 .notice.show {
   display: block;
+}
+
+.alert-strip {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  border: 1px solid rgba(0, 107, 214, 0.18);
+  border-radius: var(--radius);
+  background: linear-gradient(135deg, #ffffff, #eaf5ff);
+  box-shadow: var(--shadow);
+  margin-top: 16px;
+  padding: 16px 18px;
+}
+
+.alert-strip.is-hot {
+  border-color: rgba(220, 38, 38, 0.22);
+  background: linear-gradient(135deg, #fff7ed, #fff1f2);
+}
+
+.alert-strip strong,
+.alert-strip span {
+  display: block;
+}
+
+.alert-strip strong {
+  color: var(--navy);
+  font-size: 16px;
+}
+
+.alert-strip span {
+  color: var(--muted);
+  margin-top: 4px;
+}
+
+.whatsapp-card {
+  border: 1px solid #bbf7d0;
+  border-radius: var(--radius);
+  background: linear-gradient(135deg, #f0fdf4, #ffffff);
+  padding: 13px 14px;
+}
+
+.whatsapp-card strong,
+.whatsapp-card span {
+  display: block;
+}
+
+.whatsapp-card strong {
+  color: #166534;
+}
+
+.whatsapp-card span {
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.45;
+  margin-top: 4px;
+}
+
+.inline-action {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  margin-left: 10px;
+}
+
+.notification-row {
+  display: grid;
+  width: 100%;
+  gap: 6px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: white;
+  padding: 12px;
+  text-align: left;
+}
+
+.notification-row:hover {
+  border-color: var(--electric);
+  background: #f8fbff;
+}
+
+.notification-row small {
+  color: var(--muted);
+  line-height: 1.4;
 }
 
 .table-wrap {

@@ -567,6 +567,33 @@ function statusClass(status) {
   return "";
 }
 
+function whatsappUrl(message = "Hola TecnoStore, necesito asistencia tecnica.") {
+  return `https://wa.me/542665105694?text=${encodeURIComponent(message)}`;
+}
+
+function whatsappTicketMessage(ticket) {
+  const company = getCompany(ticket.companyId);
+  const equipment = getEquipment(ticket.equipmentId);
+  return [
+    "Hola TecnoStore, necesito enviar informacion adicional para una solicitud.",
+    `Empresa: ${company.name}`,
+    `Ticket: ${ticket.ticketNumber}`,
+    `Equipo: ${equipment?.name || "Otro / consulta general"}`,
+    `Problema: ${ticket.problemType}`,
+    `Urgencia: ${ticket.urgency}`,
+  ].join("\n");
+}
+
+function adminNotifications() {
+  return state.tickets
+    .filter((ticket) => isOpenTicket(ticket))
+    .sort((a, b) => {
+      const urgencyScore = { crítica: 4, critica: 4, alta: 3, normal: 2, baja: 1 };
+      return (urgencyScore[b.urgency] || 0) - (urgencyScore[a.urgency] || 0) || b.updatedAt.localeCompare(a.updatedAt);
+    })
+    .slice(0, 8);
+}
+
 function badge(text) {
   return `<span class="badge ${statusClass(text)}">${text}</span>`;
 }
@@ -692,6 +719,7 @@ function shellTemplate() {
   const company = getCompany();
   const items = navItems();
   const current = activeView();
+  const notifications = adminNotifications();
   const sidebarNav = items
     .map(([id, label, icon]) => `<button class="${current === id ? "active" : ""}" data-view="${id}"><span>${icon}</span>${label}</button>`)
     .join("");
@@ -735,6 +763,7 @@ function shellTemplate() {
           </div>
           <div class="topbar-actions">
             <span class="role-pill">${state.role === "admin" ? "Administrador TecnoStore" : company.name}</span>
+            ${state.role === "admin" ? `<button class="notification-button" type="button" data-open-notifications title="Notificaciones"><span>!</span>${notifications.length ? `<strong>${notifications.length}</strong>` : ""}</button>` : ""}
             <button class="icon-button" type="button" data-logout title="Salir">×</button>
           </div>
         </header>
@@ -843,10 +872,15 @@ function dashboardTemplate() {
 }
 
 function statCard(label, value, note, action = "") {
+  const tone = label.toLowerCase().includes("urgente") ? "tone-danger"
+    : label.toLowerCase().includes("vencer") || label.toLowerCase().includes("reparación") || label.toLowerCase().includes("reparaciones") ? "tone-warning"
+    : label.toLowerCase().includes("disponibles") || label.toLowerCase().includes("activo") || label.toLowerCase().includes("activas") ? "tone-success"
+    : label.toLowerCase().includes("ticket") ? "tone-blue"
+    : "tone-neutral";
   if (action) {
-    return `<button class="stat-card stat-action" type="button" data-admin-shortcut="${action}"><span>${label}</span><strong>${value}</strong><small>${note}</small></button>`;
+    return `<button class="stat-card stat-action ${tone}" type="button" data-admin-shortcut="${action}"><span>${label}</span><strong>${value}</strong><small>${note}</small></button>`;
   }
-  return `<article class="stat-card"><span>${label}</span><strong>${value}</strong><small>${note}</small></article>`;
+  return `<article class="stat-card ${tone}"><span>${label}</span><strong>${value}</strong><small>${note}</small></article>`;
 }
 
 function meta(label, value) {
@@ -962,9 +996,9 @@ function supportTemplate(selectedEquipmentId = "") {
           <label>Horario disponible</label>
           <input name="availability" placeholder="Ej: lunes a viernes de 9 a 13" />
         </div>
-        <div class="field">
-          <label>Adjuntar archivo opcional</label>
-          <input name="attachment" type="file" />
+        <div class="whatsapp-card">
+          <strong>¿Tenés capturas o fotos?</strong>
+          <span>Después de enviar la solicitud abriremos WhatsApp para que puedas mandarlas directo al equipo técnico.</span>
         </div>
         <div class="wide">
           <button class="button" type="submit">Enviar solicitud</button>
@@ -1085,12 +1119,9 @@ function ticketDetailTemplate() {
           <label>Comentario</label>
           <textarea name="message" required placeholder="Escribí una aclaración o información adicional."></textarea>
         </div>
-        <div class="field">
-          <label>Adjunto opcional</label>
-          <input type="file" />
-        </div>
         <div class="wide">
           <button class="button" type="submit">Agregar comentario</button>
+          <a class="soft-button inline-action" href="${whatsappUrl(whatsappTicketMessage(ticket))}" target="_blank" rel="noreferrer">Enviar captura por WhatsApp</a>
         </div>
       </form>
     </section>
@@ -1267,6 +1298,13 @@ function adminDashboardTemplate() {
       ${statCard("Asistencias usadas este mes", usedAssistances, "Ver consumo por empresa", "companies-assistances")}
       ${statCard("Usuarios activos", activeUsers, "Clientes, técnicos y ventas", "users-active")}
     </div>
+    <section class="alert-strip ${urgentTickets.length ? "is-hot" : ""}">
+      <div>
+        <strong>${urgentTickets.length ? "Atención técnica prioritaria" : "Operación bajo control"}</strong>
+        <span>${urgentTickets.length ? `Hay ${urgentTickets.length} ticket(s) de alta prioridad para revisar.` : "No hay urgencias críticas en este momento."}</span>
+      </div>
+      <button class="soft-button" data-admin-shortcut="${urgentTickets.length ? "tickets-urgent" : "tickets-open"}">${urgentTickets.length ? "Ver urgentes" : "Ver tickets"}</button>
+    </section>
     <section class="panel" style="margin-top: 18px;">
       <div class="panel-head">
         <div>
@@ -1565,6 +1603,7 @@ function bindGlobalEvents() {
     button.addEventListener("click", () => setView(button.dataset.view));
   });
   $("[data-logout]")?.addEventListener("click", logout);
+  $("[data-open-notifications]")?.addEventListener("click", openNotificationsModal);
 }
 
 function bindLoginEvents() {
@@ -1721,6 +1760,7 @@ function createTicket(event) {
   saveState();
   event.target.reset();
   $("#supportNotice").classList.add("show");
+  window.open(whatsappUrl(whatsappTicketMessage(ticket)), "_blank", "noopener,noreferrer");
 }
 
 function addTicketComment(event) {
@@ -1747,6 +1787,40 @@ function openModal(html) {
   dialog.innerHTML = html;
   dialog.showModal();
   dialog.querySelectorAll("[data-close-modal]").forEach((button) => button.addEventListener("click", () => dialog.close()));
+}
+
+function openNotificationsModal() {
+  const notifications = adminNotifications();
+  openModal(`
+    <div class="modal">
+      <div class="modal-head">
+        <div>
+          <h2>Notificaciones</h2>
+          <p>Tickets abiertos que requieren seguimiento.</p>
+        </div>
+        <button class="icon-button" type="button" data-close-modal>×</button>
+      </div>
+      <div class="activity-list">
+        ${notifications.length ? notifications.map((ticket) => `
+          <button class="notification-row" type="button" data-notification-ticket="${ticket.id}">
+            <span>${badge(ticket.urgency)}</span>
+            <strong>${ticket.ticketNumber} · ${getCompany(ticket.companyId).name}</strong>
+            <small>${getEquipment(ticket.equipmentId)?.name || "Otro / consulta general"} · ${ticket.problemType}</small>
+          </button>
+        `).join("") : `<div class="empty-state">No hay tickets abiertos pendientes.</div>`}
+      </div>
+    </div>
+  `);
+  document.querySelectorAll("[data-notification-ticket]").forEach((button) => {
+    button.addEventListener("click", () => {
+      $("#modal").close();
+      state.adminView = "admin-tickets";
+      state.adminFocus = { type: "tickets-open", label: "tickets abiertos" };
+      saveState();
+      render();
+      setTimeout(() => openTicketAdminModal(button.dataset.notificationTicket), 80);
+    });
+  });
 }
 
 function openEquipmentModal(id) {
