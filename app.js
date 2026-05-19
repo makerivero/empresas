@@ -983,11 +983,11 @@ function loginTemplate() {
           <p>Portal de soporte técnico para empresas y PYMES.</p>
           <div class="field">
             <label for="email">Email</label>
-            <input id="email" type="email" value="admin@tecnostore.com" autocomplete="email" />
+            <input id="email" type="email" placeholder="tuempresa@correo.com" autocomplete="email" required />
           </div>
           <div class="field">
             <label for="password">Contraseña</label>
-            <input id="password" type="password" value="Tecno2026!" autocomplete="current-password" />
+            <input id="password" type="password" placeholder="Tu contraseÃ±a" autocomplete="current-password" required />
           </div>
           <div class="login-actions">
             <button class="button" type="submit">Ingresar</button>
@@ -997,7 +997,15 @@ function loginTemplate() {
         </form>
       </section>
     </main>
-  `;
+  `
+    .replace(
+      /placeholder="Tu .*?"/,
+      'placeholder="Tu clave"'
+    )
+    .replace(
+      /<p class="helper-text">.*?<\/p>/,
+      '<p class="helper-text">Si no tenes acceso o necesitas recuperar tu clave, escribinos al WhatsApp 266 510 5694.</p>'
+    );
 }
 
 function shellTemplate() {
@@ -2090,7 +2098,7 @@ function bindLoginEvents() {
     login($("#email").value, $("#password").value);
   });
   $("[data-help]").addEventListener("click", () => {
-    alert("Solicitá a TecnoStore Empresas el alta de tu usuario o el restablecimiento de contraseña.");
+    return alert("Para recuperar tu acceso o pedir el alta de usuario, escribinos por WhatsApp al 266 510 5694.");
   });
 }
 
