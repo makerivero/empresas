@@ -541,6 +541,10 @@ button {
   background: var(--blue);
 }
 
+.client .stat-card::before {
+  background: var(--client-accent);
+}
+
 .stat-card::after {
   content: "";
   position: absolute;
@@ -550,6 +554,10 @@ button {
   top: -42px;
   border-radius: 999px;
   background: rgba(0, 107, 214, 0.08);
+}
+
+.client .stat-card::after {
+  background: var(--client-glow);
 }
 
 .stat-action {
@@ -570,6 +578,13 @@ button {
 .stat-card.tone-success::after { background: rgba(22, 163, 74, 0.10); }
 .stat-card.tone-warning::after { background: rgba(245, 158, 11, 0.13); }
 .stat-card.tone-danger::after { background: rgba(220, 38, 38, 0.11); }
+
+.client .stat-card.tone-success::before,
+.client .stat-card.tone-warning::before,
+.client .stat-card.tone-danger::before,
+.client .stat-card.tone-blue::before {
+  background: var(--client-accent);
+}
 
 .stat-card span {
   display: block;

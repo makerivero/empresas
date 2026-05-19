@@ -535,8 +535,9 @@ function cleanInitialState() {
     tickets: [],
     ticketUpdates: [],
     repairs: [],
-    serviceLogs: [],
-  };
+  serviceLogs: [],
+  planRequests: [],
+};
 }
 
 let state = loadState();
@@ -555,7 +556,7 @@ function saveState() {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
 }
 
-function resetDemo() {
+function resetAppData() {
   state = cleanInitialState();
   saveState();
   render();
@@ -654,6 +655,10 @@ function canManageSales(user = currentUser()) {
 
 function canCreateCustomer(user = currentUser()) {
   return user && ["Administrador", "Asistente comercial", "Vendedor"].includes(user.role);
+}
+
+function canManageEquipment(user = currentUser()) {
+  return user && ["Administrador", "Asistente comercial", "Técnico"].includes(user.role);
 }
 
 function sellerOptions(selected = "") {
@@ -755,13 +760,29 @@ function whatsappVisitMessage(visit) {
 }
 
 function adminNotifications() {
-  return state.tickets
+  return [
+    ...(state.planRequests || []).filter((request) => request.status === "Pendiente").map((request) => ({
+      id: request.id,
+      kind: "plan-request",
+      urgency: "normal",
+      status: "Pendiente",
+      updatedAt: request.createdAt,
+      label: `Ampliación de plan · ${companyName(request.companyId)}`,
+      detail: request.message,
+    })),
+    ...state.tickets
     .filter((ticket) => isOpenTicket(ticket))
     .sort((a, b) => {
       const urgencyScore = { crítica: 4, critica: 4, alta: 3, normal: 2, baja: 1 };
       return (urgencyScore[b.urgency] || 0) - (urgencyScore[a.urgency] || 0) || b.updatedAt.localeCompare(a.updatedAt);
     })
-    .slice(0, 8);
+    .map((ticket) => ({
+      ...ticket,
+      kind: "ticket",
+      label: `${ticket.ticketNumber} · ${companyName(ticket.companyId)}`,
+      detail: `${getEquipment(ticket.equipmentId)?.name || "Otro / consulta general"} · ${ticket.problemType}`,
+    })),
+  ].slice(0, 8);
 }
 
 function badge(text) {
@@ -1095,7 +1116,7 @@ function equipmentTemplate() {
         <h1>Mis equipos</h1>
         <p>Consultá el estado de tus equipos en tiempo real.</p>
       </div>
-      <button class="button" data-open-equipment>Agregar equipo</button>
+      ${canManageEquipment() ? `<button class="button" data-open-equipment>Agregar equipo</button>` : ""}
     </div>
     <div class="grid cards-grid">
       ${items.map(equipmentCard).join("")}
@@ -1354,6 +1375,7 @@ function repairCard(repair) {
 
 function planTemplate() {
   const company = getCompany();
+  if (!company) return `<div class="empty-state">No hay empresa seleccionada.</div>`;
   const plan = getPlan(company.planId);
   const available = company.includedAssistances - company.usedAssistances;
   const progress = Math.round((company.usedAssistances / company.includedAssistances) * 100);
@@ -1488,6 +1510,27 @@ function adminDashboardTemplate() {
       ${statCard("Usuarios activos", activeUsers, "Clientes, técnicos y ventas", "users-active")}
       ${statCard("Oportunidades comerciales", interestedVisits, "Interesados o contratados", "sales-opportunities")}
     </div>
+    ${(state.planRequests || []).filter((request) => request.status === "Pendiente").length ? `
+      <section class="panel" style="margin-top: 18px;">
+        <div class="panel-head">
+          <div>
+            <h2>Solicitudes de plan</h2>
+            <p>Pedidos enviados por clientes desde su portal.</p>
+          </div>
+        </div>
+        <div class="activity-list">
+          ${(state.planRequests || []).filter((request) => request.status === "Pendiente").map((request) => `
+            <div class="activity-row">
+              <div class="item-head">
+                <strong>${companyName(request.companyId)}</strong>
+                ${badge(request.status)}
+              </div>
+              <span>${formatDate(request.createdAt)} · ${request.message}</span>
+            </div>
+          `).join("")}
+        </div>
+      </section>
+    ` : ""}
     <section class="alert-strip ${urgentTickets.length ? "is-hot" : ""}">
       <div>
         <strong>${urgentTickets.length ? "Atención técnica prioritaria" : "Operación bajo control"}</strong>
@@ -1690,7 +1733,7 @@ function adminEquipmentTemplate() {
         <h1>Gestión de equipos</h1>
         <p>Ver equipos por empresa, editar estados y consultar historial.</p>
       </div>
-      <button class="button" data-open-equipment>Agregar equipo</button>
+      ${canManageEquipment() ? `<button class="button" data-open-equipment>Agregar equipo</button>` : ""}
     </div>
     <div class="grid cards-grid">
       ${state.equipment.map((item) => `
@@ -1763,7 +1806,6 @@ function adminSalesTemplate() {
       <div class="toolbar" style="margin: 0;">
         ${canManageSales(user) ? `<button class="button" data-open-sales-import>Cargar zona o listado</button>` : ""}
         ${canCreateCustomer(user) ? `<button class="soft-button" data-open-company>Nueva empresa</button>` : ""}
-        ${canCreateCustomer(user) ? `<button class="soft-button" data-open-equipment>Agregar equipo</button>` : ""}
       </div>
     </div>
     ${adminFocusNotice()}
@@ -1898,7 +1940,7 @@ function adminUsersTemplate() {
           <div class="meta-grid">
             ${meta("Empresa", user.companyId ? companyName(user.companyId) : "TecnoStore")}
             ${meta("Teléfono", user.phone || "Sin teléfono")}
-            ${meta("Clave demo", user.password || "No definida")}
+            ${meta("Clave provisoria", user.password || "No definida")}
             ${meta("Alta", formatDate(user.createdAt))}
           </div>
           <div class="toolbar" style="margin: 14px 0 0;">
@@ -1990,7 +2032,7 @@ function bindCurrentViewEvents() {
   $("#ticketForm")?.addEventListener("submit", createTicket);
   $("#commentForm")?.addEventListener("submit", addTicketComment);
   $("[data-plan-upgrade]")?.addEventListener("click", () => {
-    alert("Solicitud registrada en demo. En la versión final se enviaría a TecnoStore para cotización.");
+    createPlanUpgradeRequest();
   });
   document.querySelectorAll("[data-open-company]").forEach((button) => {
     button.addEventListener("click", () => openCompanyModal(button.dataset.openCompany || ""));
@@ -1999,7 +2041,13 @@ function bindCurrentViewEvents() {
     button.addEventListener("click", () => openUserModal(button.dataset.openUser || "", button.dataset.userCompany || ""));
   });
   document.querySelectorAll("[data-open-plan]").forEach((button) => {
-    button.addEventListener("click", () => openPlanModal(button.dataset.openPlan || ""));
+    button.addEventListener("click", () => {
+      if (!canManageSales()) {
+        alert("Los planes son definidos por administración. Podés elegir un plan existente para cada cliente.");
+        return;
+      }
+      openPlanModal(button.dataset.openPlan || "");
+    });
   });
   document.querySelectorAll("[data-open-sales-import]").forEach((button) => {
     button.addEventListener("click", openSalesImportModal);
@@ -2148,6 +2196,36 @@ function addTicketComment(event) {
   render();
 }
 
+function createPlanUpgradeRequest() {
+  const company = getCompany();
+  if (!company) return;
+  const existing = (state.planRequests || []).find((request) => request.companyId === company.id && request.status === "Pendiente");
+  if (existing) {
+    const button = document.querySelector("[data-plan-upgrade]");
+    if (button) {
+      button.textContent = "Solicitud pendiente";
+      button.disabled = true;
+    }
+    return;
+  }
+  const plan = getPlan(company.planId);
+  if (!state.planRequests) state.planRequests = [];
+  state.planRequests.unshift({
+    id: uid("pr"),
+    companyId: company.id,
+    currentPlanId: company.planId,
+    status: "Pendiente",
+    message: `${company.name} solicita revisar o ampliar el plan actual (${plan.name}).`,
+    createdAt: "2026-05-19",
+  });
+  saveState();
+  const button = document.querySelector("[data-plan-upgrade]");
+  if (button) {
+    button.textContent = "Solicitud enviada";
+    button.disabled = true;
+  }
+}
+
 function openModal(html) {
   const dialog = $("#modal");
   dialog.innerHTML = html;
@@ -2162,34 +2240,40 @@ function openNotificationsModal() {
       <div class="modal-head">
         <div>
           <h2>Notificaciones</h2>
-          <p>Tickets abiertos que requieren seguimiento.</p>
+          <p>Tickets y solicitudes internas que requieren seguimiento.</p>
         </div>
         <button class="icon-button" type="button" data-close-modal>×</button>
       </div>
       <div class="activity-list">
-        ${notifications.length ? notifications.map((ticket) => `
-          <button class="notification-row" type="button" data-notification-ticket="${ticket.id}">
-            <span>${badge(ticket.urgency)}</span>
-            <strong>${ticket.ticketNumber} · ${companyName(ticket.companyId)}</strong>
-            <small>${getEquipment(ticket.equipmentId)?.name || "Otro / consulta general"} · ${ticket.problemType}</small>
+        ${notifications.length ? notifications.map((item) => `
+          <button class="notification-row" type="button" data-notification-ticket="${item.id}" data-notification-kind="${item.kind}">
+            <span>${badge(item.urgency || item.status)}</span>
+            <strong>${item.label}</strong>
+            <small>${item.detail}</small>
           </button>
-        `).join("") : `<div class="empty-state">No hay tickets abiertos pendientes.</div>`}
+        `).join("") : `<div class="empty-state">No hay notificaciones pendientes.</div>`}
       </div>
     </div>
   `);
   document.querySelectorAll("[data-notification-ticket]").forEach((button) => {
     button.addEventListener("click", () => {
       $("#modal").close();
-      state.adminView = "admin-tickets";
-      state.adminFocus = { type: "tickets-open", label: "tickets abiertos" };
+      state.adminView = button.dataset.notificationKind === "ticket" ? "admin-tickets" : "admin-dashboard";
+      state.adminFocus = button.dataset.notificationKind === "ticket" ? { type: "tickets-open", label: "tickets abiertos" } : null;
       saveState();
       render();
-      setTimeout(() => openTicketAdminModal(button.dataset.notificationTicket), 80);
+      if (button.dataset.notificationKind === "ticket") {
+        setTimeout(() => openTicketAdminModal(button.dataset.notificationTicket), 80);
+      }
     });
   });
 }
 
 function openEquipmentModal(id) {
+  if (state.role === "admin" && !canManageEquipment()) {
+    alert("Tu usuario puede crear clientes y registrar ventas, pero la carga técnica de equipos queda para administración o técnicos.");
+    return;
+  }
   const item = state.equipment.find((equipment) => equipment.id === id);
   const companies = state.role === "admin" ? state.companies : [getCompany()];
   if (!item && !companies.length) {
@@ -2293,13 +2377,13 @@ function openCompanyModal(id) {
         <div class="field"><label>Teléfono</label><input name="phone" value="${company?.phone || ""}" /></div>
         <div class="field"><label>Email</label><input name="email" type="email" value="${company?.email || ""}" /></div>
         <div class="field"><label>Dirección</label><input name="address" value="${company?.address || ""}" /></div>
-        <div class="field"><label>Plan contratado</label><select name="planId">${state.plans.map((plan) => `<option value="${plan.id}" ${(company?.planId || defaultPlan.id) === plan.id ? "selected" : ""}>${plan.name}</option>`).join("")}</select></div>
+        <div class="field"><label>Plan contratado</label><select name="planId" data-company-plan-select>${state.plans.map((plan) => `<option value="${plan.id}" ${(company?.planId || defaultPlan.id) === plan.id ? "selected" : ""}>${plan.name} · ${plan.price}</option>`).join("")}</select></div>
         <div class="field"><label>Estado de suscripción</label><select name="subscriptionStatus">${subscriptionStatuses.map((status) => `<option ${company?.subscriptionStatus === status ? "selected" : ""}>${status}</option>`).join("")}</select></div>
         <div class="field"><label>Fecha de inicio</label><input type="date" name="startDate" value="${company?.startDate || "2026-05-18"}" /></div>
         <div class="field"><label>Fecha de vencimiento</label><input type="date" name="renewalDate" value="${company?.renewalDate || "2026-06-18"}" /></div>
-        <div class="field"><label>Asistencias incluidas</label><input type="number" name="includedAssistances" value="${company?.includedAssistances || defaultPlan.includedAssistances}" /></div>
+        <div class="field"><label>Asistencias incluidas</label><input type="number" name="includedAssistances" value="${company?.includedAssistances || defaultPlan.includedAssistances}" readonly /></div>
         <div class="field"><label>Asistencias usadas</label><input type="number" name="usedAssistances" value="${company?.usedAssistances || 0}" /></div>
-        <div class="field"><label>Equipos permitidos</label><input type="number" name="maxEquipment" value="${company?.maxEquipment || defaultPlan.maxEquipment}" /></div>
+        <div class="field"><label>Equipos permitidos</label><input type="number" name="maxEquipment" value="${company?.maxEquipment || defaultPlan.maxEquipment}" readonly /></div>
         <div class="field"><label>Login cliente</label><input name="loginEmail" type="email" value="${loginUser?.email || company?.email || ""}" /></div>
         <div class="field"><label>Clave provisoria</label><input name="loginPassword" value="${loginUser?.password || "Cliente2026!"}" /></div>
         <div class="field wide"><label>Notas internas</label><textarea name="notes">${company?.notes || ""}</textarea></div>
@@ -2310,6 +2394,11 @@ function openCompanyModal(id) {
       </div>
     </form>
   `);
+  $("[data-company-plan-select]").addEventListener("change", (event) => {
+    const selectedPlan = getPlan(event.target.value);
+    $("#companyForm [name='includedAssistances']").value = selectedPlan.includedAssistances;
+    $("#companyForm [name='maxEquipment']").value = selectedPlan.maxEquipment;
+  });
   $("#companyForm").addEventListener("submit", saveCompany);
 }
 
@@ -2330,18 +2419,14 @@ function saveCompany(event) {
     subscriptionStatus: form.subscriptionStatus,
     startDate: form.startDate,
     renewalDate: form.renewalDate,
-    includedAssistances: Number(form.includedAssistances),
+    includedAssistances: Number(plan?.includedAssistances || form.includedAssistances),
     usedAssistances: Number(form.usedAssistances),
-    maxEquipment: Number(form.maxEquipment),
+    maxEquipment: Number(plan?.maxEquipment || form.maxEquipment),
     notes: form.notes,
     createdAt: existing?.createdAt || "2026-05-18",
   };
   if (existing) Object.assign(existing, payload);
   else state.companies.push(payload);
-  if (plan && !existing) {
-    payload.includedAssistances = Number(form.includedAssistances || plan.includedAssistances);
-    payload.maxEquipment = Number(form.maxEquipment || plan.maxEquipment);
-  }
   let loginUser = getCompanyUser(payload.id);
   if (!loginUser) {
     loginUser = {
@@ -2373,7 +2458,7 @@ function openUserModal(id, presetCompanyId = "") {
       <div class="modal-head">
         <div>
           <h2>${user ? "Editar usuario" : "Nuevo usuario"}</h2>
-          <p>Acceso demo para clientes, técnicos, vendedores y asistentes comerciales.</p>
+          <p>Acceso para clientes, técnicos, vendedores y asistentes comerciales.</p>
         </div>
         <button class="icon-button" type="button" data-close-modal>×</button>
       </div>
@@ -2759,6 +2844,6 @@ function init() {
   render();
 }
 
-window.resetTecnoStoreDemo = resetDemo;
+window.resetTecnoStoreData = resetAppData;
 
 init();
