@@ -51,6 +51,11 @@ const closedTicketStatuses = ["Resuelto", "Cerrado", "Cancelado"];
 const closedRepairStatuses = ["Entregado", "Cancelado"];
 const visitStatuses = ["Pendiente", "Visitado", "No visitado", "Interesado", "Contrató"];
 
+const equipmentRecordTypes = ["Equipo principal", "Recurso / Periferico"];
+const primaryEquipmentTypes = ["PC de escritorio", "Notebook", "Servidor basico", "Celular", "Tablet"];
+const peripheralEquipmentTypes = ["Impresora", "Router", "Access Point", "Modem", "Switch", "Camara IP", "Lector / scanner", "Otro periferico"];
+const networkResourceTypes = ["Router", "Access Point", "Modem", "Switch"];
+
 const planCatalog = [
   {
     id: "start",
@@ -731,6 +736,64 @@ function getEquipment(id) {
   return state.equipment.find((item) => item.id === id);
 }
 
+function normalizedEquipmentType(type = "") {
+  const text = cleanText(type);
+  if (text === "pc") return "PC de escritorio";
+  if (text === "servidor" || text === "servidor basico") return "Servidor basico";
+  if (text === "red") return "Router";
+  if (text === "otro") return "Otro periferico";
+  if (text === "modem") return "Modem";
+  if (text === "camara ip") return "Camara IP";
+  return type || "PC de escritorio";
+}
+
+function equipmentRecordType(item = {}) {
+  if (item.recordType) return item.recordType;
+  const type = normalizedEquipmentType(item.type);
+  return primaryEquipmentTypes.includes(type) ? "Equipo principal" : "Recurso / Periferico";
+}
+
+function isPrimaryEquipment(item = {}) {
+  return equipmentRecordType(item) === "Equipo principal";
+}
+
+function primaryEquipment(companyId = state.currentCompanyId) {
+  return companyEquipment(companyId).filter(isPrimaryEquipment);
+}
+
+function peripheralEquipment(companyId = state.currentCompanyId) {
+  return companyEquipment(companyId).filter((item) => !isPrimaryEquipment(item));
+}
+
+function equipmentScopeText(item = {}) {
+  const type = normalizedEquipmentType(item.type);
+  if (["Celular", "Tablet"].includes(type)) {
+    return "Este equipo puede recibir soporte de configuracion, software, cuentas, backup basico y diagnostico inicial. Las reparaciones fisicas, cambios de modulo, bateria, pin de carga u otros repuestos se cotizan aparte.";
+  }
+  if (type === "Impresora") {
+    return "Las impresoras se registran como recursos/perifericos. El soporte incluido contempla configuracion, drivers, conexion en red y revision basica. No incluye reparacion fisica, mecanica o electronica de la impresora.";
+  }
+  if (networkResourceTypes.includes(type)) {
+    return "Los equipos de red se registran como recursos/perifericos. El soporte incluido contempla configuracion y conectividad. No incluye reparacion fisica de routers, modems, switches o access points.";
+  }
+  if (isPrimaryEquipment(item)) {
+    return "Este equipo esta incluido dentro del soporte tecnico del plan. Las intervenciones se realizaran segun el alcance contratado y la disponibilidad de asistencias.";
+  }
+  return "Los recursos y perifericos se registran para facilitar configuraciones, soporte basico y documentacion tecnica. No cuentan como equipos principales del plan y no incluyen reparacion fisica del dispositivo.";
+}
+
+function ticketScopeNotice(equipmentId) {
+  const item = getEquipment(equipmentId);
+  if (!item || item.id === "other") return "";
+  if (isPrimaryEquipment(item) && !["Celular", "Tablet"].includes(normalizedEquipmentType(item.type))) return "";
+  return `<div class="scope-note ticket-scope">${equipmentScopeText(item)}</div>`;
+}
+
+function defaultDiscountsAssistance(equipmentId) {
+  const item = getEquipment(equipmentId);
+  return item && item.id !== "other" && isPrimaryEquipment(item);
+}
+
 function currentUser() {
   return state.users.find((user) => user.id === state.currentUserId) || null;
 }
@@ -815,8 +878,13 @@ function equipmentOptionsForCompany(companyId, selected = "", includeOther = tru
     : [];
   return [
     ...options,
-    ...assigned.map((item) => `<option value="${item.id}" ${selected === item.id ? "selected" : ""}>${item.name}</option>`),
+    ...assigned.map((item) => `<option value="${item.id}" ${selected === item.id ? "selected" : ""}>${equipmentRecordType(item)} - ${item.name}</option>`),
   ].join("");
+}
+
+function equipmentTypeOptions(recordType, selected = "") {
+  const types = recordType === "Equipo principal" ? primaryEquipmentTypes : peripheralEquipmentTypes;
+  return types.map((type) => `<option value="${type}" ${normalizedEquipmentType(selected) === type ? "selected" : ""}>${type}</option>`).join("");
 }
 
 function companyTickets(companyId = state.currentCompanyId) {
@@ -1178,6 +1246,8 @@ function dashboardTemplate() {
   const plan = getPlan(company.planId);
   const tickets = companyTickets();
   const equipment = companyEquipment();
+  const mainEquipment = equipment.filter(isPrimaryEquipment);
+  const resources = equipment.filter((item) => !isPrimaryEquipment(item));
   const repairs = companyRepairs();
   const openTickets = tickets.filter((ticket) => !["Resuelto", "Cerrado", "Cancelado"].includes(ticket.status));
   const recent = [
@@ -1215,9 +1285,9 @@ function dashboardTemplate() {
       ${statCard("Plan activo", plan.shortName, plan.price)}
       ${statCard("Asistencias disponibles", `${company.includedAssistances - company.usedAssistances} de ${company.includedAssistances}`, "Consumo mensual del servicio")}
       ${statCard("Tickets abiertos", openTickets.length, "Solicitudes en seguimiento")}
-      ${statCard("Equipos registrados", equipment.length, `${company.maxEquipment} permitidos por plan`)}
+      ${statCard("Equipos principales", `${mainEquipment.length} / ${company.maxEquipment}`, "Incluidos dentro del plan")}
+      ${statCard("Recursos / Perifericos", resources.length, "Registrados para configuracion")}
       ${statCard("Próximo vencimiento", formatDate(company.renewalDate), company.subscriptionStatus)}
-      ${statCard("Equipos en reparación", repairs.filter((repair) => !["Entregado", "Cancelado"].includes(repair.status)).length, "Órdenes activas")}
     </div>
     <div class="grid two-col" style="margin-top: 18px;">
       <section class="panel">
@@ -1236,7 +1306,8 @@ function dashboardTemplate() {
         <div class="meta-grid">
           ${meta("Suscripción", badge(company.subscriptionStatus))}
           ${meta("Contacto", company.contactName)}
-          ${meta("Equipos activos", equipment.filter((item) => item.status === "Activo").length)}
+          ${meta("Equipos principales activos", mainEquipment.filter((item) => item.status === "Activo").length)}
+          ${meta("Recursos registrados", resources.length)}
           ${meta("Urgencias", tickets.filter((ticket) => ["alta", "crítica"].includes(ticket.urgency)).length)}
         </div>
       </section>
@@ -1274,17 +1345,26 @@ function activityRow(item) {
 
 function equipmentTemplate() {
   const items = companyEquipment();
+  const mainItems = items.filter(isPrimaryEquipment);
+  const resourceItems = items.filter((item) => !isPrimaryEquipment(item));
   return `
     <div class="section-head">
       <div>
-        <h1>Mis equipos</h1>
+        <h1>Activos de la empresa</h1>
         <p>Consultá el estado de tus equipos en tiempo real.</p>
       </div>
-      ${canManageEquipment() ? `<button class="button" data-open-equipment>Agregar equipo</button>` : ""}
+      ${state.role === "client" || canManageEquipment() ? `<button class="button" data-open-equipment>Agregar equipo</button>` : ""}
     </div>
-    <div class="grid cards-grid">
-      ${items.map(equipmentCard).join("")}
-    </div>
+    <section class="scope-panel">
+      <strong>Equipos principales</strong>
+      <span>Los equipos principales son los dispositivos incluidos dentro del soporte tecnico del plan contratado.</span>
+    </section>
+    <div class="grid cards-grid">${mainItems.map(equipmentCard).join("") || `<div class="empty-state">Todavia no hay equipos principales registrados.</div>`}</div>
+    <section class="scope-panel peripheral">
+      <strong>Recursos / Perifericos</strong>
+      <span>Los recursos y perifericos se registran para facilitar configuraciones, soporte basico y documentacion tecnica. No cuentan como equipos principales del plan y no incluyen reparacion fisica del dispositivo.</span>
+    </section>
+    <div class="grid cards-grid">${resourceItems.map(equipmentCard).join("") || `<div class="empty-state">Todavia no hay recursos/perifericos registrados.</div>`}</div>
   `;
 }
 
@@ -1294,6 +1374,7 @@ function equipmentCard(item) {
       <div class="item-head">
         <div>
           <h2 class="item-title">${item.name}</h2>
+          <p class="item-subtitle">${equipmentRecordType(item)} - ${normalizedEquipmentType(item.type)}</p>
           <p class="item-subtitle">${item.type} · ${item.brand} ${item.model}</p>
         </div>
         ${badge(item.status)}
@@ -1305,6 +1386,7 @@ function equipmentCard(item) {
         ${meta("Último servicio", formatDate(item.lastServiceDate))}
       </div>
       <p class="item-subtitle">${item.notes}</p>
+      <div class="scope-note">${equipmentScopeText(item)}</div>
       <div class="toolbar" style="margin: 14px 0 0;">
         <button class="soft-button" data-open-equipment="${item.id}">Editar</button>
         <button class="ghost-button" data-equipment-history="${item.id}">Ver historial</button>
@@ -1327,9 +1409,10 @@ function supportTemplate(selectedEquipmentId = "") {
     <section class="panel">
       <form id="ticketForm" class="form-grid">
         <div class="field">
-          <label>Equipo afectado</label>
+          <label>Equipo principal o recurso/periferico relacionado</label>
           <select name="equipmentId" required>${equipmentOptions}</select>
         </div>
+        <div class="wide" id="ticketScopeNotice"></div>
         <div class="field">
           <label>Tipo de problema</label>
           <select name="problemType" required>
@@ -1457,12 +1540,15 @@ function ticketDetailTemplate() {
         </div>
         <div class="meta-grid">
           ${meta("Equipo", equipment?.name || "Sin equipo")}
+          ${meta("Tipo de activo", equipment ? equipmentRecordType(equipment) : "Consulta general")}
           ${meta("Urgencia", badge(ticket.urgency))}
           ${meta("Modalidad", ticket.modality)}
           ${meta("Técnico asignado", ticket.assignedTechnician || "Pendiente")}
+          ${meta("Descuenta asistencia", ticket.descuentaAsistencia === false ? "No" : "Si")}
           ${meta("Creado", formatDate(ticket.createdAt))}
           ${meta("Actualizado", formatDate(ticket.updatedAt))}
         </div>
+        ${ticketScopeNotice(ticket.equipmentId)}
         <p class="item-subtitle" style="margin-top: 18px;">${ticket.description}</p>
       </section>
       <section class="panel">
@@ -1571,9 +1657,12 @@ function planTemplate() {
           ${meta("Asistencias incluidas", company.includedAssistances)}
           ${meta("Asistencias usadas", company.usedAssistances)}
           ${meta("Asistencias disponibles", available)}
-          ${meta("Equipos permitidos", company.maxEquipment)}
-          ${meta("Equipos registrados", companyEquipment().length)}
+          ${meta("Equipos principales permitidos", company.maxEquipment)}
+          ${meta("Equipos principales registrados", primaryEquipment().length)}
+          ${meta("Recursos / Perifericos", peripheralEquipment().length)}
         </div>
+        <div class="scope-note" style="margin-top: 14px;">Tu plan contempla soporte sobre equipos principales registrados. Los recursos/perifericos se registran para configuracion, documentacion y soporte basico, pero no cuentan como equipos principales ni incluyen reparacion fisica.</div>
+        <div class="scope-note" style="margin-top: 10px;">Las visitas presenciales incluidas tienen una duracion maxima de 1 hora por visita. Las tareas que requieran mas tiempo, repuestos, licencias o trabajos fuera del alcance se cotizaran aparte.</div>
       </section>
       <section class="panel">
         <h2>Servicios incluidos</h2>
@@ -1582,6 +1671,24 @@ function planTemplate() {
         </ul>
       </section>
     </div>
+    <section class="panel" style="margin-top: 16px;">
+      <h2>Servicios adicionales</h2>
+      <div class="meta-grid" style="margin-top: 14px;">
+        ${meta("Formateo / restablecimiento celular", "$20.000")}
+        ${meta("Backup y restauracion celular", "$15.000")}
+        ${meta("Cambio de modulo / pantalla", "mano de obra desde $28.000 + repuesto")}
+        ${meta("Cambio de bateria", "mano de obra desde $15.000 + repuesto")}
+        ${meta("Cambio de pin de carga", "mano de obra desde $22.000 + repuesto")}
+      </div>
+      <p class="item-subtitle" style="margin-top: 12px;">Valores orientativos editables desde administracion en una proxima version. Todo repuesto o reparacion fisica se cotiza aparte.</p>
+    </section>
+    <section class="panel" style="margin-top: 16px;">
+      <h2>Alcance del servicio</h2>
+      <p class="item-subtitle" style="margin-top: 12px;">Los planes de TecnoStore Empresas incluyen soporte tecnico sobre equipos principales registrados, como PCs, notebooks, servidores basicos, celulares y tablets.</p>
+      <p class="item-subtitle">Tambien pueden registrarse recursos y perifericos, como impresoras, routers, access points y otros dispositivos, con el objetivo de documentar la infraestructura de la empresa y facilitar tareas de configuracion.</p>
+      <p class="item-subtitle">Los recursos/perifericos no cuentan como equipos principales del plan y no incluyen reparacion fisica. Su soporte se limita a configuracion, instalacion, conectividad, drivers y orientacion tecnica, segun corresponda.</p>
+      <p class="item-subtitle">Las visitas presenciales incluidas tienen una duracion maxima de 1 hora por visita. Si una tarea requiere mas tiempo, repuestos, licencias, reparacion fisica o trabajos fuera del alcance contratado, sera informado y cotizado como servicio adicional.</p>
+    </section>
   `;
 }
 
@@ -1811,7 +1918,8 @@ function adminCompaniesTemplate() {
               ${meta("Plan", plan.shortName)}
               ${meta("Vencimiento", formatDate(company.renewalDate))}
               ${meta("Asistencias", `${company.usedAssistances}/${company.includedAssistances}`)}
-              ${meta("Equipos", `${companyEquipment(company.id).length}/${company.maxEquipment}`)}
+              ${meta("Equipos principales", `${primaryEquipment(company.id).length}/${company.maxEquipment}`)}
+              ${meta("Recursos", peripheralEquipment(company.id).length)}
               ${meta("Login cliente", loginUser ? loginUser.email : "Sin usuario")}
             </div>
             <p class="item-subtitle">${company.notes}</p>
@@ -2370,6 +2478,15 @@ function bindCurrentViewEvents() {
     button.addEventListener("click", () => showEquipmentHistory(button.dataset.equipmentHistory));
   });
   $("#ticketForm")?.addEventListener("submit", createTicket);
+  const ticketEquipmentSelect = $("#ticketForm [name='equipmentId']");
+  if (ticketEquipmentSelect) {
+    const updateTicketScope = () => {
+      const target = $("#ticketScopeNotice");
+      if (target) target.innerHTML = ticketScopeNotice(ticketEquipmentSelect.value);
+    };
+    ticketEquipmentSelect.addEventListener("change", updateTicketScope);
+    updateTicketScope();
+  }
   $("#commentForm")?.addEventListener("submit", addTicketComment);
   $("[data-plan-upgrade]")?.addEventListener("click", () => {
     createPlanUpgradeRequest();
@@ -2508,6 +2625,7 @@ function createTicket(event) {
     description: form.get("description"),
     status: "Recibido",
     assignedTechnician: "Pendiente",
+    descuentaAsistencia: defaultDiscountsAssistance(form.get("equipmentId")),
     customerComments: form.get("availability") ? [`Horario disponible: ${form.get("availability")}`] : [],
     internalNotes: "",
     createdAt: today,
@@ -2655,7 +2773,8 @@ function openEquipmentModal(id) {
           <select name="companyId">${companies.map((company) => `<option value="${company.id}" ${item?.companyId === company.id ? "selected" : ""}>${company.name}</option>`).join("")}</select>
         </div>
         <div class="field"><label>Nombre</label><input name="name" required value="${item?.name || ""}" /></div>
-        <div class="field"><label>Tipo</label><select name="type">${["PC", "notebook", "impresora", "red", "servidor", "otro"].map((type) => `<option ${item?.type === type ? "selected" : ""}>${type}</option>`).join("")}</select></div>
+        <div class="field"><label>Tipo de registro</label><select name="recordType">${equipmentRecordTypes.map((type) => `<option value="${type}" ${equipmentRecordType(item || {}) === type ? "selected" : ""}>${type}</option>`).join("")}</select></div>
+        <div class="field"><label>Tipo</label><select name="type">${equipmentTypeOptions(equipmentRecordType(item || {}), item?.type)}</select></div>
         <div class="field"><label>Marca</label><input name="brand" value="${item?.brand || ""}" /></div>
         <div class="field"><label>Modelo</label><input name="model" value="${item?.model || ""}" /></div>
         <div class="field"><label>Número de serie</label><input name="serialNumber" value="${item?.serialNumber || ""}" /></div>
@@ -2663,6 +2782,9 @@ function openEquipmentModal(id) {
         <div class="field"><label>Sistema operativo</label><input name="operatingSystem" value="${item?.operatingSystem || ""}" /></div>
         <div class="field"><label>Estado</label><select name="status">${equipmentStatuses.map((status) => `<option ${item?.status === status ? "selected" : ""}>${status}</option>`).join("")}</select></div>
         <div class="field"><label>Último servicio</label><input type="date" name="lastServiceDate" value="${item?.lastServiceDate || "2026-05-18"}" /></div>
+        <div class="field"><label>Conexion / driver</label><input name="connectionType" placeholder="USB / WiFi / Ethernet / driver" value="${item?.connectionType || item?.driverRequired || ""}" /></div>
+        <div class="field"><label>IP / SSID / cuenta</label><input name="ipAddress" placeholder="IP, SSID o cuenta principal" value="${item?.ipAddress || item?.ssid || item?.mainAccount || ""}" /></div>
+        <div class="field"><label>Linea / proveedor</label><input name="assignedLine" placeholder="Linea celular o proveedor de internet" value="${item?.assignedLine || item?.internetProvider || ""}" /></div>
         <div class="field wide"><label>Observaciones</label><textarea name="notes">${item?.notes || ""}</textarea></div>
       </div>
       <div class="toolbar" style="margin: 12px 0 0;">
@@ -2671,6 +2793,9 @@ function openEquipmentModal(id) {
       </div>
     </form>
   `);
+  $("#equipmentForm [name='recordType']")?.addEventListener("change", (event) => {
+    $("#equipmentForm [name='type']").innerHTML = equipmentTypeOptions(event.target.value);
+  });
   $("#equipmentForm").addEventListener("submit", saveEquipment);
 }
 
@@ -2681,6 +2806,8 @@ function saveEquipment(event) {
   const payload = {
     ...form,
     id: form.id || uid("e"),
+    type: normalizedEquipmentType(form.type),
+    recordType: form.recordType || (primaryEquipmentTypes.includes(normalizedEquipmentType(form.type)) ? "Equipo principal" : "Recurso / Periferico"),
     createdAt: existing?.createdAt || "2026-05-18",
   };
   if (existing) Object.assign(existing, payload);
@@ -3097,6 +3224,8 @@ function openTicketAdminModal(id) {
         <div class="field"><label>Descontar asistencia</label><select name="discount"><option value="no">No</option><option value="yes">Sí</option></select></div>
         <div class="field wide"><label>Descripción</label><textarea name="description">${ticket?.description || ""}</textarea></div>
         <div class="field wide"><label>Respuesta visible al cliente</label><textarea name="response" placeholder="Escribí una actualización para el cliente."></textarea></div>
+        <div class="field"><label>Descuenta asistencia</label><select name="descuentaAsistencia"><option value="false" ${ticket?.descuentaAsistencia === false ? "selected" : ""}>No</option><option value="true" ${ticket?.descuentaAsistencia !== false ? "selected" : ""}>Si</option></select></div>
+        <div class="field wide">${ticketScopeNotice(ticket?.equipmentId || "other")}</div>
         <div class="field wide"><label>Observaciones internas</label><textarea name="internalNotes">${ticket?.internalNotes || ""}</textarea></div>
       </div>
       <div class="toolbar" style="margin: 12px 0 0;">
@@ -3105,6 +3234,7 @@ function openTicketAdminModal(id) {
       </div>
     </form>
   `);
+  $("#adminTicketForm [name='discount']")?.closest(".field")?.remove();
   $("[data-ticket-company-select]").addEventListener("change", (event) => {
     $("#adminTicketForm [name='equipmentId']").innerHTML = equipmentOptionsForCompany(event.target.value, "other", true);
   });
@@ -3116,6 +3246,7 @@ function saveAdminTicket(event) {
   const form = Object.fromEntries(new FormData(event.target).entries());
   let ticket = state.tickets.find((item) => item.id === form.id);
   const today = "2026-05-18";
+  const previousDiscount = ticket?.descuentaAsistencia === true;
   if (!ticket) {
     ticket = {
       id: uid("t"),
@@ -3134,6 +3265,7 @@ function saveAdminTicket(event) {
     description: form.description,
     status: form.status,
     assignedTechnician: form.assignedTechnician,
+    descuentaAsistencia: form.descuentaAsistencia === "true",
     internalNotes: form.internalNotes,
     updatedAt: today,
   });
@@ -3148,9 +3280,15 @@ function saveAdminTicket(event) {
       createdAt: today,
     });
   }
-  if (form.discount === "yes") {
+  const nextDiscount = form.descuentaAsistencia === "true";
+  if (nextDiscount !== previousDiscount) {
     const company = getCompany(form.companyId);
-    company.usedAssistances = Number(company.usedAssistances) + 1;
+    if (company) {
+      company.usedAssistances = Math.max(0, Number(company.usedAssistances) + (nextDiscount ? 1 : -1));
+    }
+  } else if (form.discount === "yes") {
+    const company = getCompany(form.companyId);
+    if (company) company.usedAssistances = Number(company.usedAssistances) + 1;
   }
   saveState();
   $("#modal").close();
