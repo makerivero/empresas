@@ -19,6 +19,7 @@ const PERSISTED_KEYS = [
 
 let isBootstrapping = true;
 let saveTimer = null;
+let filterTimer = null;
 
 const ticketStatuses = [
   "Recibido",
@@ -113,6 +114,21 @@ const defaultState = {
     ticketStatus: "Todos",
     ticketUrgency: "Todas",
     ticketCompany: "Todas",
+    ticketSearch: "",
+    companyStatus: "Todas",
+    companyPlan: "Todos",
+    companySearch: "",
+    equipmentCompany: "Todas",
+    equipmentStatus: "Todos",
+    equipmentType: "Todos",
+    equipmentSearch: "",
+    repairCompany: "Todas",
+    repairStatus: "Todos",
+    repairSearch: "",
+    userRole: "Todos",
+    userStatus: "Todos",
+    userCompany: "Todas",
+    userSearch: "",
   },
   plans: structuredClone(planCatalog),
   salesZones: [
@@ -668,6 +684,24 @@ function getCompany(id = state.currentCompanyId) {
 
 function companyName(id) {
   return getCompany(id)?.name || "Empresa sin asignar";
+}
+
+function cleanText(value) {
+  return String(value || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+}
+
+function textMatches(search, values) {
+  const query = cleanText(search).trim();
+  if (!query) return true;
+  return values.some((value) => cleanText(value).includes(query));
+}
+
+function escapeAttr(value) {
+  return String(value || "")
+    .replaceAll("&", "&amp;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;");
 }
 
 function getPlan(id) {
@@ -1670,6 +1704,11 @@ function adminDashboardTemplate() {
 
 function adminCompaniesTemplate() {
   let companies = [...state.companies];
+  const filters = {
+    companyStatus: state.filters.companyStatus || "Todas",
+    companyPlan: state.filters.companyPlan || "Todos",
+    companySearch: state.filters.companySearch || "",
+  };
   if (state.adminFocus?.type === "companies-active") {
     companies = companies.filter((company) => company.subscriptionStatus === "Activa");
   }
@@ -1680,6 +1719,20 @@ function adminCompaniesTemplate() {
     companies = companies.filter((company) => Number(company.usedAssistances) > 0);
     companies.sort((a, b) => Number(b.usedAssistances) - Number(a.usedAssistances));
   }
+  companies = companies.filter((company) => {
+    const statusOk = filters.companyStatus === "Todas" || company.subscriptionStatus === filters.companyStatus;
+    const planOk = filters.companyPlan === "Todos" || company.planId === filters.companyPlan;
+    const searchOk = textMatches(filters.companySearch, [
+      company.name,
+      company.contactName,
+      company.email,
+      company.phone,
+      company.address,
+      getPlan(company.planId).shortName,
+    ]);
+    return statusOk && planOk && searchOk;
+  });
+
   return `
     <div class="section-head">
       <div>
@@ -1689,6 +1742,22 @@ function adminCompaniesTemplate() {
       <button class="button" data-open-company>Nueva empresa</button>
     </div>
     ${adminFocusNotice()}
+    <section class="panel filter-panel">
+      <div class="toolbar" style="margin-bottom: 0;">
+        <div class="filters">
+          <input data-filter="companySearch" placeholder="Buscar empresa, contacto o email" value="${escapeAttr(filters.companySearch)}" />
+          <select data-filter="companyStatus">
+            <option value="Todas">Todas las suscripciones</option>
+            ${subscriptionStatuses.map((status) => `<option value="${status}" ${filters.companyStatus === status ? "selected" : ""}>${status}</option>`).join("")}
+          </select>
+          <select data-filter="companyPlan">
+            <option value="Todos">Todos los planes</option>
+            ${state.plans.map((plan) => `<option value="${plan.id}" ${filters.companyPlan === plan.id ? "selected" : ""}>${plan.shortName}</option>`).join("")}
+          </select>
+        </div>
+        <span class="filter-count">Mostrando ${companies.length} de ${state.companies.length}</span>
+      </div>
+    </section>
     <div class="grid cards-grid">
       ${companies.map((company) => {
         const plan = getPlan(company.planId);
@@ -1728,9 +1797,17 @@ function adminTicketsTemplate() {
     const companyOk = state.filters.ticketCompany === "Todas" || ticket.companyId === state.filters.ticketCompany;
     const statusOk = state.filters.ticketStatus === "Todos" || ticket.status === state.filters.ticketStatus;
     const urgencyOk = state.filters.ticketUrgency === "Todas" || ticket.urgency === state.filters.ticketUrgency;
+    const searchOk = textMatches(state.filters.ticketSearch || "", [
+      ticket.ticketNumber,
+      ticket.problemType,
+      ticket.description,
+      ticket.assignedTechnician,
+      companyName(ticket.companyId),
+      getEquipment(ticket.equipmentId)?.name,
+    ]);
     const focusOpenOk = state.adminFocus?.type !== "tickets-open" || isOpenTicket(ticket);
     const focusUrgentOk = state.adminFocus?.type !== "tickets-urgent" || isUrgentTicket(ticket);
-    return companyOk && statusOk && urgencyOk && focusOpenOk && focusUrgentOk;
+    return companyOk && statusOk && urgencyOk && searchOk && focusOpenOk && focusUrgentOk;
   });
 
   return `
@@ -1745,6 +1822,7 @@ function adminTicketsTemplate() {
     <section class="panel">
       <div class="toolbar">
         <div class="filters">
+          <input data-filter="ticketSearch" placeholder="Buscar ticket, equipo o problema" value="${escapeAttr(state.filters.ticketSearch || "")}" />
           <select data-filter="ticketCompany">
             <option value="Todas">Todas las empresas</option>
             ${state.companies.map((company) => `<option value="${company.id}" ${state.filters.ticketCompany === company.id ? "selected" : ""}>${company.name}</option>`).join("")}
@@ -1758,6 +1836,7 @@ function adminTicketsTemplate() {
             ${["baja", "normal", "alta", "crítica"].map((urgency) => `<option ${state.filters.ticketUrgency === urgency ? "selected" : ""}>${urgency}</option>`).join("")}
           </select>
         </div>
+        <span class="filter-count">Mostrando ${filtered.length} de ${state.tickets.length}</span>
       </div>
       <div class="table-wrap">
         <table>
@@ -1792,7 +1871,24 @@ function adminTicketsTemplate() {
 }
 
 function adminRepairsTemplate() {
-  const repairs = state.adminFocus?.type === "repairs-active" ? state.repairs.filter(isActiveRepair) : state.repairs;
+  const filters = {
+    repairCompany: state.filters.repairCompany || "Todas",
+    repairStatus: state.filters.repairStatus || "Todos",
+    repairSearch: state.filters.repairSearch || "",
+  };
+  const baseRepairs = state.adminFocus?.type === "repairs-active" ? state.repairs.filter(isActiveRepair) : state.repairs;
+  const repairs = baseRepairs.filter((repair) => {
+    const companyOk = filters.repairCompany === "Todas" || repair.companyId === filters.repairCompany;
+    const statusOk = filters.repairStatus === "Todos" || repair.status === filters.repairStatus;
+    const searchOk = textMatches(filters.repairSearch, [
+      repair.orderNumber,
+      companyName(repair.companyId),
+      getEquipment(repair.equipmentId)?.name,
+      repair.diagnosis,
+      repair.assignedTechnician,
+    ]);
+    return companyOk && statusOk && searchOk;
+  });
   return `
     <div class="section-head">
       <div>
@@ -1802,6 +1898,22 @@ function adminRepairsTemplate() {
       <button class="button" data-open-repair>Crear reparación</button>
     </div>
     ${adminFocusNotice()}
+    <section class="panel filter-panel">
+      <div class="toolbar" style="margin-bottom: 0;">
+        <div class="filters">
+          <input data-filter="repairSearch" placeholder="Buscar orden, equipo o tecnico" value="${escapeAttr(filters.repairSearch)}" />
+          <select data-filter="repairCompany">
+            <option value="Todas">Todas las empresas</option>
+            ${state.companies.map((company) => `<option value="${company.id}" ${filters.repairCompany === company.id ? "selected" : ""}>${company.name}</option>`).join("")}
+          </select>
+          <select data-filter="repairStatus">
+            <option value="Todos">Todos los estados</option>
+            ${repairStatuses.map((status) => `<option value="${status}" ${filters.repairStatus === status ? "selected" : ""}>${status}</option>`).join("")}
+          </select>
+        </div>
+        <span class="filter-count">Mostrando ${repairs.length} de ${baseRepairs.length}</span>
+      </div>
+    </section>
     <div class="grid cards-grid">
       ${repairs.map((repair) => `
         <article class="card status-card ${statusClass(repair.status)}">
@@ -1828,6 +1940,28 @@ function adminRepairsTemplate() {
 }
 
 function adminEquipmentTemplate() {
+  const filters = {
+    equipmentCompany: state.filters.equipmentCompany || "Todas",
+    equipmentStatus: state.filters.equipmentStatus || "Todos",
+    equipmentType: state.filters.equipmentType || "Todos",
+    equipmentSearch: state.filters.equipmentSearch || "",
+  };
+  const equipmentTypes = [...new Set(state.equipment.map((item) => item.type).filter(Boolean))].sort();
+  const equipment = state.equipment.filter((item) => {
+    const companyOk = filters.equipmentCompany === "Todas" || item.companyId === filters.equipmentCompany;
+    const statusOk = filters.equipmentStatus === "Todos" || item.status === filters.equipmentStatus;
+    const typeOk = filters.equipmentType === "Todos" || item.type === filters.equipmentType;
+    const searchOk = textMatches(filters.equipmentSearch, [
+      item.name,
+      item.brand,
+      item.model,
+      item.serialNumber,
+      item.userOrSector,
+      item.operatingSystem,
+      companyName(item.companyId),
+    ]);
+    return companyOk && statusOk && typeOk && searchOk;
+  });
   return `
     <div class="section-head">
       <div>
@@ -1836,8 +1970,28 @@ function adminEquipmentTemplate() {
       </div>
       ${canManageEquipment() ? `<button class="button" data-open-equipment>Agregar equipo</button>` : ""}
     </div>
+    <section class="panel filter-panel">
+      <div class="toolbar" style="margin-bottom: 0;">
+        <div class="filters">
+          <input data-filter="equipmentSearch" placeholder="Buscar equipo, serie, sector o marca" value="${escapeAttr(filters.equipmentSearch)}" />
+          <select data-filter="equipmentCompany">
+            <option value="Todas">Todas las empresas</option>
+            ${state.companies.map((company) => `<option value="${company.id}" ${filters.equipmentCompany === company.id ? "selected" : ""}>${company.name}</option>`).join("")}
+          </select>
+          <select data-filter="equipmentStatus">
+            <option value="Todos">Todos los estados</option>
+            ${equipmentStatuses.map((status) => `<option value="${status}" ${filters.equipmentStatus === status ? "selected" : ""}>${status}</option>`).join("")}
+          </select>
+          <select data-filter="equipmentType">
+            <option value="Todos">Todos los tipos</option>
+            ${equipmentTypes.map((type) => `<option value="${type}" ${filters.equipmentType === type ? "selected" : ""}>${type}</option>`).join("")}
+          </select>
+        </div>
+        <span class="filter-count">Mostrando ${equipment.length} de ${state.equipment.length}</span>
+      </div>
+    </section>
     <div class="grid cards-grid">
-      ${state.equipment.map((item) => `
+      ${equipment.map((item) => `
         <article class="card status-card ${statusClass(item.status)}">
           <div class="item-head">
             <div>
@@ -2018,7 +2172,27 @@ function visitCard(visit) {
 }
 
 function adminUsersTemplate() {
-  const users = state.adminFocus?.type === "users-active" ? state.users.filter((user) => user.active) : state.users;
+  const filters = {
+    userRole: state.filters.userRole || "Todos",
+    userStatus: state.filters.userStatus || "Todos",
+    userCompany: state.filters.userCompany || "Todas",
+    userSearch: state.filters.userSearch || "",
+  };
+  const baseUsers = state.adminFocus?.type === "users-active" ? state.users.filter((user) => user.active) : state.users;
+  const userRoles = [...new Set(["Cliente empresa", ...internalRoles, ...state.users.map((user) => user.role)])].filter(Boolean);
+  const users = baseUsers.filter((user) => {
+    const roleOk = filters.userRole === "Todos" || user.role === filters.userRole;
+    const statusOk = filters.userStatus === "Todos" || (filters.userStatus === "Activos" ? user.active : !user.active);
+    const companyOk = filters.userCompany === "Todas" || (filters.userCompany === "TecnoStore" ? !user.companyId : user.companyId === filters.userCompany);
+    const searchOk = textMatches(filters.userSearch, [
+      user.name,
+      user.email,
+      user.phone,
+      user.role,
+      user.companyId ? companyName(user.companyId) : "TecnoStore",
+    ]);
+    return roleOk && statusOk && companyOk && searchOk;
+  });
   return `
     <div class="section-head">
       <div>
@@ -2028,6 +2202,28 @@ function adminUsersTemplate() {
       <button class="button" data-open-user>Nuevo usuario</button>
     </div>
     ${adminFocusNotice()}
+    <section class="panel filter-panel">
+      <div class="toolbar" style="margin-bottom: 0;">
+        <div class="filters">
+          <input data-filter="userSearch" placeholder="Buscar nombre, email, telefono o rol" value="${escapeAttr(filters.userSearch)}" />
+          <select data-filter="userRole">
+            <option value="Todos">Todos los roles</option>
+            ${userRoles.map((role) => `<option value="${role}" ${filters.userRole === role ? "selected" : ""}>${role}</option>`).join("")}
+          </select>
+          <select data-filter="userStatus">
+            <option value="Todos">Todos los estados</option>
+            <option value="Activos" ${filters.userStatus === "Activos" ? "selected" : ""}>Activos</option>
+            <option value="Inactivos" ${filters.userStatus === "Inactivos" ? "selected" : ""}>Inactivos</option>
+          </select>
+          <select data-filter="userCompany">
+            <option value="Todas">Todas las empresas</option>
+            <option value="TecnoStore" ${filters.userCompany === "TecnoStore" ? "selected" : ""}>TecnoStore</option>
+            ${state.companies.map((company) => `<option value="${company.id}" ${filters.userCompany === company.id ? "selected" : ""}>${company.name}</option>`).join("")}
+          </select>
+        </div>
+        <span class="filter-count">Mostrando ${users.length} de ${baseUsers.length}</span>
+      </div>
+    </section>
     <div class="grid cards-grid">
       ${users.map((user) => `
         <article class="card status-card ${statusClass(user.active ? "Activo" : "Inactivo")}">
@@ -2048,7 +2244,7 @@ function adminUsersTemplate() {
             <button class="soft-button" data-open-user="${user.id}">Editar usuario</button>
           </div>
         </article>
-      `).join("")}
+      `).join("") || `<div class="empty-state">No hay usuarios que coincidan con los filtros aplicados.</div>`}
     </div>
   `;
 }
@@ -2177,11 +2373,24 @@ function bindCurrentViewEvents() {
     button.addEventListener("click", () => deleteCompany(button.dataset.deleteCompany));
   });
   document.querySelectorAll("[data-filter]").forEach((filter) => {
-    filter.addEventListener("change", () => {
+    const updateFilter = () => {
       state.filters[filter.dataset.filter] = filter.value;
       saveState();
       render();
-    });
+    };
+    if (filter.tagName === "INPUT") {
+      filter.addEventListener("input", () => {
+        state.filters[filter.dataset.filter] = filter.value;
+        clearTimeout(filterTimer);
+        filterTimer = setTimeout(() => {
+          saveState();
+          render();
+        }, 450);
+      });
+      filter.addEventListener("change", updateFilter);
+    } else {
+      filter.addEventListener("change", updateFilter);
+    }
   });
   document.querySelectorAll("[data-admin-ticket]").forEach((button) => {
     button.addEventListener("click", () => openTicketAdminModal(button.dataset.adminTicket));

@@ -993,6 +993,7 @@ button {
   display: flex;
   flex-wrap: wrap;
   gap: 10px;
+  flex: 1 1 auto;
 }
 
 .filters select,
@@ -1003,6 +1004,29 @@ button {
   background: white;
   padding: 0 12px;
   color: var(--text);
+}
+
+.filters input {
+  min-width: min(100%, 260px);
+  flex: 1 1 260px;
+}
+
+.filter-panel {
+  margin-bottom: 16px;
+  padding: 14px;
+}
+
+.filter-count {
+  display: inline-flex;
+  align-items: center;
+  min-height: 34px;
+  border-radius: 999px;
+  background: var(--surface-2);
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 800;
+  padding: 0 12px;
+  white-space: nowrap;
 }
 
 .form-grid {
