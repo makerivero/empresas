@@ -1672,17 +1672,6 @@ function planTemplate() {
       </section>
     </div>
     <section class="panel" style="margin-top: 16px;">
-      <h2>Servicios adicionales</h2>
-      <div class="meta-grid" style="margin-top: 14px;">
-        ${meta("Formateo / restablecimiento celular", "$20.000")}
-        ${meta("Backup y restauracion celular", "$15.000")}
-        ${meta("Cambio de modulo / pantalla", "mano de obra desde $28.000 + repuesto")}
-        ${meta("Cambio de bateria", "mano de obra desde $15.000 + repuesto")}
-        ${meta("Cambio de pin de carga", "mano de obra desde $22.000 + repuesto")}
-      </div>
-      <p class="item-subtitle" style="margin-top: 12px;">Valores orientativos editables desde administracion en una proxima version. Todo repuesto o reparacion fisica se cotiza aparte.</p>
-    </section>
-    <section class="panel" style="margin-top: 16px;">
       <h2>Alcance del servicio</h2>
       <p class="item-subtitle" style="margin-top: 12px;">Los planes de TecnoStore Empresas incluyen soporte tecnico sobre equipos principales registrados, como PCs, notebooks, servidores basicos, celulares y tablets.</p>
       <p class="item-subtitle">Tambien pueden registrarse recursos y perifericos, como impresoras, routers, access points y otros dispositivos, con el objetivo de documentar la infraestructura de la empresa y facilitar tareas de configuracion.</p>
