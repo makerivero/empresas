@@ -2009,6 +2009,8 @@ details.coverage-block:not([open]) > :not(summary) {
   display: flex;
   align-items: center;
   justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 6px 12px;
   border-bottom: 1px solid rgba(0, 107, 214, 0.10);
   color: var(--navy);
   font-size: 17px;
@@ -2023,12 +2025,69 @@ details.coverage-block:not([open]) > :not(summary) {
 
 .coverage-block summary::after {
   content: "";
+  order: 1;
   width: 34px;
   height: 4px;
   flex: 0 0 auto;
   border-radius: 999px;
   background: linear-gradient(90deg, var(--blue), var(--electric));
   opacity: 0.8;
+}
+
+.coverage-scroll > details.coverage-block > summary::before {
+  order: 2;
+  flex: 0 0 100%;
+  color: var(--muted);
+  content: "Detalle completo del alcance, condiciones y servicios incluidos.";
+  font-size: 13px;
+  font-weight: 650;
+  line-height: 1.45;
+  margin-top: 4px;
+  white-space: pre-line;
+}
+
+.coverage-scroll > details.coverage-block:nth-of-type(1) > summary::before {
+  content: "Precio, equipos principales permitidos, asistencias mensuales y beneficios principales del plan.";
+}
+
+.coverage-scroll > details.coverage-block:nth-of-type(2) > summary::before {
+  content: "PC de escritorio, notebooks, servidores básicos, celulares y tablets incluidos dentro del soporte del plan.";
+}
+
+.coverage-scroll > details.coverage-block:nth-of-type(3) > summary::before {
+  content: "Diagnóstico técnico, optimización, mantenimiento preventivo, software, sistema operativo, backup básico y seguimiento.";
+}
+
+.coverage-scroll > details.coverage-block:nth-of-type(4) > summary::before {
+  content: "Configuración de cuentas, correo, apps, sincronización, backup básico, asistencia de software y formateo. Reparaciones físicas se cotizan aparte.";
+}
+
+.coverage-scroll > details.coverage-block:nth-of-type(5) > summary::before {
+  content: "Impresoras, routers, módems, access points, switches, cámaras IP y scanners se registran para documentar infraestructura. No cuentan como equipos principales.";
+}
+
+.coverage-scroll > details.coverage-block:nth-of-type(6) > summary::before {
+  content: "Instalación de drivers, configuración USB o red, impresión compartida, conectividad y orientación técnica. No incluye reparación física.";
+}
+
+.coverage-scroll > details.coverage-block:nth-of-type(7) > summary::before {
+  content: "Configuración básica de red, WiFi, contraseñas, access points y conectividad. No incluye reparación física del dispositivo.";
+}
+
+.coverage-scroll > details.coverage-block:nth-of-type(8) > summary::before {
+  content: "Las visitas presenciales incluidas duran hasta 1 hora por visita. Las asistencias corresponden al mes activo y no son acumulables.";
+}
+
+.coverage-scroll > details.coverage-block:nth-of-type(9) > summary::before {
+  content: "No incluye repuestos, licencias, insumos, reparaciones físicas de periféricos, recuperación avanzada de datos, trabajos eléctricos ni tareas fuera de alcance.";
+}
+
+.coverage-scroll > details.coverage-block:nth-of-type(10) > summary::before {
+  content: "Los trabajos fuera del alcance se cotizan por separado: visitas, instalaciones, configuración de puestos, impresoras/red, soporte remoto y reparaciones con repuestos.";
+}
+
+.coverage-scroll > details.coverage-block:nth-of-type(11) > summary::before {
+  content: "Los servicios aplican sobre equipos principales registrados. Recursos/periféricos se documentan para configuración y soporte básico, sin reparación física incluida.";
 }
 
 .coverage-title strong {
