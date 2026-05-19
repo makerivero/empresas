@@ -637,15 +637,15 @@ button {
   background: linear-gradient(135deg, #ffffff, #fef2f2 82%);
 }
 
-.cards-grid > .card:nth-child(3n + 1):not(.status-card) {
+.cards-grid > .card:nth-child(3n + 1):not(.status-card):not(.plan-card) {
   background: linear-gradient(135deg, #ffffff, #eef6ff 82%);
 }
 
-.cards-grid > .card:nth-child(3n + 2):not(.status-card) {
+.cards-grid > .card:nth-child(3n + 2):not(.status-card):not(.plan-card) {
   background: linear-gradient(135deg, #ffffff, #f0fdf4 82%);
 }
 
-.cards-grid > .card:nth-child(3n + 3):not(.status-card) {
+.cards-grid > .card:nth-child(3n + 3):not(.status-card):not(.plan-card) {
   background: linear-gradient(135deg, #ffffff, #fff7ed 82%);
 }
 
@@ -683,7 +683,7 @@ button {
   padding: 22px;
 }
 
-.plan-card.start {
+.cards-grid > .plan-card.start {
   --plan-accent: #7dd3fc;
   --plan-glow: rgba(0, 140, 255, 0.32);
   background:
@@ -691,7 +691,7 @@ button {
     linear-gradient(135deg, #04142f 0%, #075aaf 58%, #00a3ff 100%);
 }
 
-.plan-card.pyme {
+.cards-grid > .plan-card.pyme {
   --plan-accent: #a7f3d0;
   --plan-glow: rgba(16, 185, 129, 0.30);
   background:
@@ -699,7 +699,7 @@ button {
     linear-gradient(135deg, #052e2b 0%, #047857 55%, #34d399 100%);
 }
 
-.plan-card.full {
+.cards-grid > .plan-card.full {
   --plan-accent: #fde68a;
   --plan-glow: rgba(245, 158, 11, 0.34);
   background:
