@@ -1922,6 +1922,10 @@ dialog::backdrop {
   overflow: hidden;
 }
 
+details.coverage-block:not([open]) > :not(summary) {
+  display: block;
+}
+
 .coverage-block.featured {
   border-color: rgba(0, 140, 255, 0.28);
   background:
@@ -1936,6 +1940,32 @@ dialog::backdrop {
   border-bottom: 1px solid rgba(0, 107, 214, 0.10);
   color: var(--navy);
   padding: 15px 16px;
+}
+
+.coverage-block summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 1px solid rgba(0, 107, 214, 0.10);
+  color: var(--navy);
+  font-size: 17px;
+  font-weight: 900;
+  list-style: none;
+  padding: 15px 16px;
+}
+
+.coverage-block summary::-webkit-details-marker {
+  display: none;
+}
+
+.coverage-block summary::after {
+  content: "";
+  width: 34px;
+  height: 4px;
+  flex: 0 0 auto;
+  border-radius: 999px;
+  background: linear-gradient(90deg, var(--blue), var(--electric));
+  opacity: 0.8;
 }
 
 .coverage-title strong {
@@ -1959,7 +1989,17 @@ dialog::backdrop {
   padding: 14px 16px 16px;
 }
 
-.coverage-content p:first-child {
+.coverage-block > div:not(.coverage-title),
+.coverage-content {
+  display: block;
+  color: var(--muted);
+  font-size: 14px;
+  line-height: 1.55;
+  padding: 14px 16px 16px;
+}
+
+.coverage-content p:first-child,
+.coverage-block > div:not(.coverage-title) p:first-child {
   margin-top: 0;
 }
 
@@ -2030,6 +2070,63 @@ dialog::backdrop {
 .share-actions {
   justify-content: flex-start;
   margin: 8px 0 0;
+}
+
+@media (max-width: 640px) {
+  dialog.wide-dialog,
+  dialog.share-dialog {
+    width: min(100vw - 18px, 100%);
+    max-height: 94dvh;
+    border-radius: 18px;
+  }
+
+  .coverage-modal {
+    max-height: 94dvh;
+    padding: 16px;
+  }
+
+  .coverage-modal .modal-head {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: 10px;
+    margin-bottom: 12px;
+  }
+
+  .coverage-modal .modal-head h2 {
+    font-size: 22px;
+    line-height: 1.14;
+  }
+
+  .coverage-modal .modal-head p {
+    font-size: 14px;
+  }
+
+  .coverage-scroll {
+    gap: 12px;
+    padding-right: 0;
+  }
+
+  .coverage-title,
+  .coverage-block summary {
+    align-items: flex-start;
+    padding: 13px 14px;
+  }
+
+  .coverage-title strong,
+  .coverage-block summary {
+    font-size: 16px;
+    line-height: 1.22;
+  }
+
+  .coverage-block > div:not(.coverage-title),
+  .coverage-content {
+    font-size: 14px;
+    padding: 13px 14px 15px;
+  }
+
+  .coverage-summary-card {
+    padding: 12px;
+  }
 }
 
 .admin-only,
