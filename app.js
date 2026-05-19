@@ -1066,7 +1066,16 @@ function htmlList(items) {
 }
 
 function coverageBlock(title, content, open = false) {
-  return `<details class="coverage-block" ${open ? "open" : ""}><summary>${title}</summary><div>${content}</div></details>`;
+  return `
+    <article class="coverage-block ${open ? "featured" : ""}">
+      <div class="coverage-title">
+        <strong>${title}</strong>
+      </div>
+      <div class="coverage-content">
+        ${content}
+      </div>
+    </article>
+  `;
 }
 
 function planCoverageHtml(plan) {
