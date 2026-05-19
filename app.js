@@ -1776,13 +1776,13 @@ function adminPlansTemplate() {
     </div>
     <div class="grid cards-grid">
       ${state.plans.map((plan) => `
-        <article class="card plan-card">
+        <article class="card plan-card ${plan.id}">
           <div class="item-head">
             <div>
               <h2 class="item-title">${plan.name}</h2>
               <p class="item-subtitle">${plan.description}</p>
             </div>
-            ${badge(plan.price)}
+            <span class="plan-price">${plan.price}</span>
           </div>
           <div class="meta-grid">
             ${meta("Equipos permitidos", plan.maxEquipment)}
@@ -1791,9 +1791,9 @@ function adminPlansTemplate() {
           <ul class="feature-list" style="margin-top: 16px;">
             ${plan.features.map((feature) => `<li>${feature}</li>`).join("")}
           </ul>
-          <div class="toolbar" style="margin: 14px 0 0;">
-            ${canManageSales(user) ? `<button class="soft-button" data-open-plan="${plan.id}">Editar plan</button>` : ""}
-            <a class="button" href="${whatsappUrl(whatsappPlanMessage(plan))}" target="_blank" rel="noreferrer">Compartir</a>
+          <div class="toolbar plan-actions" style="margin: 14px 0 0;">
+            ${canManageSales(user) ? `<button class="soft-button plan-secondary" data-open-plan="${plan.id}">Editar plan</button>` : ""}
+            <a class="button plan-primary" href="${whatsappUrl(whatsappPlanMessage(plan))}" target="_blank" rel="noreferrer">Compartir</a>
           </div>
         </article>
       `).join("")}
