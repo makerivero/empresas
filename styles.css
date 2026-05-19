@@ -1549,6 +1549,114 @@ tr:last-child td {
   flex: 0 0 auto;
 }
 
+.included-panel {
+  overflow: hidden;
+  border-color: rgba(0, 107, 214, 0.18);
+  background:
+    radial-gradient(circle at 96% 0%, rgba(0, 140, 255, 0.12), transparent 36%),
+    linear-gradient(180deg, #ffffff, #f7fbff);
+}
+
+.included-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 14px;
+  margin-bottom: 14px;
+}
+
+.included-head span {
+  color: var(--blue);
+  font-size: 12px;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.included-head h2 {
+  margin-top: 4px;
+  font-size: 24px;
+}
+
+.included-head > strong {
+  display: inline-flex;
+  align-items: center;
+  min-height: 34px;
+  border-radius: 999px;
+  background: var(--client-soft);
+  color: var(--navy);
+  padding: 0 12px;
+}
+
+.visit-limit-card {
+  border-radius: 18px;
+  background:
+    radial-gradient(circle at 92% 18%, rgba(255, 255, 255, 0.24), transparent 30%),
+    linear-gradient(135deg, var(--client-accent-2), var(--client-accent));
+  color: white;
+  box-shadow: 0 18px 36px var(--client-glow);
+  margin-bottom: 14px;
+  padding: 18px;
+}
+
+.visit-limit-card span,
+.visit-limit-card strong,
+.visit-limit-card small {
+  display: block;
+}
+
+.visit-limit-card span {
+  color: rgba(255, 255, 255, 0.82);
+  font-size: 12px;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.visit-limit-card strong {
+  font-size: 30px;
+  line-height: 1.1;
+  margin-top: 5px;
+}
+
+.visit-limit-card small {
+  color: rgba(255, 255, 255, 0.86);
+  line-height: 1.45;
+  margin-top: 8px;
+}
+
+.included-grid {
+  display: grid;
+  gap: 10px;
+}
+
+.included-service {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  border: 1px solid rgba(0, 107, 214, 0.12);
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.82);
+  box-shadow: 0 10px 24px rgba(6, 26, 58, 0.06);
+  padding: 12px;
+}
+
+.included-service span {
+  display: grid;
+  width: 30px;
+  height: 30px;
+  place-items: center;
+  border-radius: 10px;
+  background: var(--client-soft);
+  color: var(--client-accent-2);
+  font-size: 12px;
+  font-weight: 900;
+  flex: 0 0 auto;
+}
+
+.included-service strong {
+  color: var(--text);
+  line-height: 1.35;
+}
+
 .contact-actions {
   display: grid;
   grid-template-columns: minmax(0, 1fr);

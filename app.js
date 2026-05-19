@@ -1664,11 +1664,27 @@ function planTemplate() {
         <div class="scope-note" style="margin-top: 14px;">Tu plan contempla soporte sobre equipos principales registrados. Los recursos/perifericos se registran para configuracion, documentacion y soporte basico, pero no cuentan como equipos principales ni incluyen reparacion fisica.</div>
         <div class="scope-note" style="margin-top: 10px;">Las visitas presenciales incluidas tienen una duracion maxima de 1 hora por visita. Las tareas que requieran mas tiempo, repuestos, licencias o trabajos fuera del alcance se cotizaran aparte.</div>
       </section>
-      <section class="panel">
-        <h2>Servicios incluidos</h2>
-        <ul class="feature-list" style="margin-top: 16px;">
-          ${plan.features.map((feature) => `<li>${feature}</li>`).join("")}
-        </ul>
+      <section class="panel included-panel">
+        <div class="included-head">
+          <div>
+            <span>Incluido en tu plan</span>
+            <h2>Servicios incluidos</h2>
+          </div>
+          <strong>${plan.shortName}</strong>
+        </div>
+        <div class="visit-limit-card">
+          <span>Visitas presenciales</span>
+          <strong>Hasta 1 hora</strong>
+          <small>por visita incluida en el plan. Si una tarea requiere mas tiempo, se informa y cotiza antes de avanzar.</small>
+        </div>
+        <div class="included-grid">
+          ${plan.features.map((feature, index) => `
+            <div class="included-service">
+              <span>${index + 1}</span>
+              <strong>${feature}</strong>
+            </div>
+          `).join("")}
+        </div>
       </section>
     </div>
     <section class="panel" style="margin-top: 16px;">
