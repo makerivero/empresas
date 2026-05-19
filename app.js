@@ -1549,8 +1549,14 @@ function contactTemplate() {
         <p>Soporte técnico y mantenimiento IT para empresas y PYMES.</p>
       </div>
     </div>
-    <section class="panel">
-      <h2>TecnoStore Empresas</h2>
+    <section class="panel contact-panel">
+      <div class="contact-heading">
+        <div class="contact-mark">TS</div>
+        <div>
+          <h2>TecnoStore Empresas</h2>
+          <p>Nos ocupamos de la tecnologia de tu negocio.</p>
+        </div>
+      </div>
       <div class="meta-grid" style="margin-top: 16px;">
         ${meta("WhatsApp", "266 510 5694")}
         ${meta("Dirección", "Pringles 772, San Luis")}
@@ -1558,9 +1564,9 @@ function contactTemplate() {
         ${meta("Mensaje", "Nos ocupamos de la tecnología de tu negocio.")}
       </div>
       <div class="contact-actions">
-        <a class="button" href="https://wa.me/542665105694" target="_blank" rel="noreferrer">Enviar WhatsApp</a>
-        <button class="soft-button" data-view="support">Solicitar asistencia</button>
-        <a class="soft-button" href="https://www.google.com/maps/search/?api=1&query=Pringles%20772%2C%20San%20Luis" target="_blank" rel="noreferrer">Ver ubicación</a>
+        <a class="contact-action primary" href="https://wa.me/542665105694" target="_blank" rel="noreferrer"><span>☎</span><strong>Enviar WhatsApp</strong></a>
+        <button class="contact-action" data-view="support" type="button"><span>＋</span><strong>Solicitar asistencia</strong></button>
+        <a class="contact-action" href="https://www.google.com/maps/search/?api=1&query=Pringles%20772%2C%20San%20Luis" target="_blank" rel="noreferrer"><span>⌖</span><strong>Ver ubicacion</strong></a>
       </div>
     </section>
   `;
