@@ -1044,7 +1044,7 @@ function equipmentTemplate() {
 
 function equipmentCard(item) {
   return `
-    <article class="card">
+    <article class="card status-card ${statusClass(item.status)}">
       <div class="item-head">
         <div>
           <h2 class="item-title">${item.name}</h2>
@@ -1077,7 +1077,7 @@ function supportTemplate(selectedEquipmentId = "") {
         <p>Solicitá asistencia en pocos pasos.</p>
       </div>
     </div>
-    <div id="supportNotice" class="notice">Tu solicitud fue enviada correctamente. Nuestro equipo técnico la revisará a la brevedad.</div>
+    <div id="supportNotice" class="notice"></div>
     <section class="panel">
       <form id="ticketForm" class="form-grid">
         <div class="field">
@@ -1171,7 +1171,7 @@ function ticketsTemplate() {
 
 function ticketRow(ticket) {
   return `
-    <tr>
+    <tr class="status-row ${statusClass(ticket.status)}">
       <td><strong>${ticket.ticketNumber}</strong></td>
       <td>${getEquipment(ticket.equipmentId)?.name || "Sin equipo"}</td>
       <td>${ticket.problemType}</td>
@@ -1272,7 +1272,7 @@ function repairsTemplate() {
 
 function repairCard(repair) {
   return `
-    <article class="card">
+    <article class="card status-card ${statusClass(repair.status)}">
       <div class="item-head">
         <div>
           <h2 class="item-title">${repair.orderNumber}</h2>
@@ -1490,7 +1490,7 @@ function adminCompaniesTemplate() {
         const plan = getPlan(company.planId);
         const loginUser = getCompanyUser(company.id);
         return `
-          <article class="card">
+          <article class="card status-card ${statusClass(company.subscriptionStatus)}">
             <div class="item-head">
               <div>
                 <h2 class="item-title">${company.name}</h2>
@@ -1569,7 +1569,7 @@ function adminTicketsTemplate() {
           </thead>
           <tbody>
             ${filtered.map((ticket) => `
-              <tr>
+              <tr class="status-row ${statusClass(ticket.status)}">
                 <td><strong>${ticket.ticketNumber}</strong><br />${ticket.problemType}</td>
                 <td>${getCompany(ticket.companyId).name}</td>
                 <td>${getEquipment(ticket.equipmentId)?.name || "Sin equipo"}</td>
@@ -1599,7 +1599,7 @@ function adminRepairsTemplate() {
     ${adminFocusNotice()}
     <div class="grid cards-grid">
       ${repairs.map((repair) => `
-        <article class="card">
+        <article class="card status-card ${statusClass(repair.status)}">
           <div class="item-head">
             <div>
               <h2 class="item-title">${repair.orderNumber}</h2>
@@ -1633,7 +1633,7 @@ function adminEquipmentTemplate() {
     </div>
     <div class="grid cards-grid">
       ${state.equipment.map((item) => `
-        <article class="card">
+        <article class="card status-card ${statusClass(item.status)}">
           <div class="item-head">
             <div>
               <h2 class="item-title">${item.name}</h2>
@@ -1704,7 +1704,7 @@ function adminSalesTemplate() {
 
 function visitCard(visit) {
   return `
-    <article class="visit-card">
+    <article class="visit-card status-card ${statusClass(visit.status)}">
       <div class="item-head">
         <div>
           <h3>${visit.businessName}</h3>
@@ -1741,7 +1741,7 @@ function adminUsersTemplate() {
     ${adminFocusNotice()}
     <div class="grid cards-grid">
       ${users.map((user) => `
-        <article class="card">
+        <article class="card status-card ${statusClass(user.active ? "Activo" : "Inactivo")}">
           <div class="item-head">
             <div>
               <h2 class="item-title">${user.name}</h2>
@@ -1972,8 +1972,15 @@ function createTicket(event) {
   });
   saveState();
   event.target.reset();
-  $("#supportNotice").classList.add("show");
-  window.open(whatsappUrl(whatsappTicketMessage(ticket)), "_blank", "noopener,noreferrer");
+  const notice = $("#supportNotice");
+  notice.innerHTML = `
+    <div>
+      <strong>Tu solicitud fue enviada correctamente.</strong>
+      <span>Nuestro equipo técnico la revisará a la brevedad. Si querés sumar una captura o foto, podés enviarla por WhatsApp.</span>
+    </div>
+    <a class="button" href="${whatsappUrl(whatsappTicketMessage(ticket))}" target="_blank" rel="noreferrer">Enviar captura por WhatsApp</a>
+  `;
+  notice.classList.add("show", "notice-action");
 }
 
 function addTicketComment(event) {
