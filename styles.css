@@ -1509,6 +1509,13 @@ tr:last-child td {
   line-height: 1.5;
 }
 
+.plan-band small {
+  display: block;
+  color: rgba(255, 255, 255, 0.82);
+  font-weight: 800;
+  margin-top: 10px;
+}
+
 .progress-track {
   overflow: hidden;
   height: 10px;
@@ -1655,6 +1662,43 @@ tr:last-child td {
 .included-service strong {
   color: var(--text);
   line-height: 1.35;
+}
+
+.onsite-quota-card {
+  border: 1px solid rgba(0, 140, 255, 0.18);
+  border-radius: 18px;
+  background:
+    radial-gradient(circle at 94% 0%, rgba(0, 140, 255, 0.14), transparent 34%),
+    linear-gradient(135deg, #ffffff, #eef7ff);
+  box-shadow: 0 14px 30px rgba(0, 107, 214, 0.09);
+  margin-top: 14px;
+  padding: 16px;
+}
+
+.onsite-quota-card span,
+.onsite-quota-card strong,
+.onsite-quota-card small {
+  display: block;
+}
+
+.onsite-quota-card span {
+  color: var(--blue);
+  font-size: 12px;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.onsite-quota-card strong {
+  color: var(--navy);
+  font-size: 30px;
+  line-height: 1.1;
+  margin-top: 5px;
+}
+
+.onsite-quota-card small {
+  color: var(--muted);
+  line-height: 1.45;
+  margin-top: 6px;
 }
 
 .contact-actions {

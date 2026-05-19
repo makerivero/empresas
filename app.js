@@ -65,6 +65,7 @@ const planCatalog = [
     description: "Ideal para 1 a 3 PCs.",
     maxEquipment: 3,
     includedAssistances: 4,
+    includedOnsiteVisits: 1,
     features: [
       "soporte remoto",
       "mantenimiento preventivo",
@@ -80,6 +81,7 @@ const planCatalog = [
     description: "Ideal para 4 a 10 PCs.",
     maxEquipment: 10,
     includedAssistances: 10,
+    includedOnsiteVisits: 2,
     features: [
       "soporte remoto y presencial",
       "mantenimiento mensual",
@@ -96,6 +98,7 @@ const planCatalog = [
     description: "Para empresas con mayor dependencia tecnológica.",
     maxEquipment: 30,
     includedAssistances: 20,
+    includedOnsiteVisits: 4,
     features: [
       "soporte integral",
       "mantenimiento completo",
@@ -713,6 +716,23 @@ function getPlan(id) {
   return state.plans.find((plan) => plan.id === id) || state.plans[1] || planCatalog[1];
 }
 
+function includedOnsiteVisitsFor(companyOrPlan = {}) {
+  if (companyOrPlan.includedOnsiteVisits !== undefined) return Number(companyOrPlan.includedOnsiteVisits);
+  const plan = companyOrPlan.planId ? getPlan(companyOrPlan.planId) : companyOrPlan;
+  if (plan?.includedOnsiteVisits !== undefined) return Number(plan.includedOnsiteVisits);
+  if (plan?.id === "full") return 4;
+  if (plan?.id === "pyme") return 2;
+  return 1;
+}
+
+function usedOnsiteVisitsFor(company = {}) {
+  return Number(company.usedOnsiteVisits || 0);
+}
+
+function availableOnsiteVisitsFor(company = {}) {
+  return Math.max(0, includedOnsiteVisitsFor(company) - usedOnsiteVisitsFor(company));
+}
+
 function planThemeClass(planId) {
   return `plan-${planId || "start"}`;
 }
@@ -1248,6 +1268,8 @@ function dashboardTemplate() {
   const equipment = companyEquipment();
   const mainEquipment = equipment.filter(isPrimaryEquipment);
   const resources = equipment.filter((item) => !isPrimaryEquipment(item));
+  const onsiteIncluded = includedOnsiteVisitsFor(company);
+  const onsiteUsed = usedOnsiteVisitsFor(company);
   const repairs = companyRepairs();
   const openTickets = tickets.filter((ticket) => !["Resuelto", "Cerrado", "Cancelado"].includes(ticket.status));
   const recent = [
@@ -1284,6 +1306,7 @@ function dashboardTemplate() {
     <div class="grid stats-grid">
       ${statCard("Plan activo", plan.shortName, plan.price)}
       ${statCard("Asistencias disponibles", `${company.includedAssistances - company.usedAssistances} de ${company.includedAssistances}`, "Consumo mensual del servicio")}
+      ${statCard("Visitas a domicilio", `${Math.max(0, onsiteIncluded - onsiteUsed)} de ${onsiteIncluded}`, "Presenciales de hasta 1 hora")}
       ${statCard("Tickets abiertos", openTickets.length, "Solicitudes en seguimiento")}
       ${statCard("Equipos principales", `${mainEquipment.length} / ${company.maxEquipment}`, "Incluidos dentro del plan")}
       ${statCard("Recursos / Perifericos", resources.length, "Registrados para configuracion")}
@@ -1545,6 +1568,7 @@ function ticketDetailTemplate() {
           ${meta("Modalidad", ticket.modality)}
           ${meta("Técnico asignado", ticket.assignedTechnician || "Pendiente")}
           ${meta("Descuenta asistencia", ticket.descuentaAsistencia === false ? "No" : "Si")}
+          ${meta("Descuenta visita a domicilio", ticket.descuentaVisitaDomicilio ? "Si" : "No")}
           ${meta("Creado", formatDate(ticket.createdAt))}
           ${meta("Actualizado", formatDate(ticket.updatedAt))}
         </div>
@@ -1628,7 +1652,11 @@ function planTemplate() {
   if (!company) return `<div class="empty-state">No hay empresa seleccionada.</div>`;
   const plan = getPlan(company.planId);
   const available = company.includedAssistances - company.usedAssistances;
+  const onsiteIncluded = includedOnsiteVisitsFor(company);
+  const onsiteUsed = usedOnsiteVisitsFor(company);
+  const onsiteAvailable = availableOnsiteVisitsFor(company);
   const progress = Math.round((company.usedAssistances / company.includedAssistances) * 100);
+  const onsiteProgress = onsiteIncluded ? Math.round((onsiteUsed / onsiteIncluded) * 100) : 0;
   return `
     <div class="section-head">
       <div>
@@ -1645,6 +1673,7 @@ function planTemplate() {
       <div>
         <strong>${company.usedAssistances} asistencias usadas de ${company.includedAssistances}</strong>
         <div class="progress-track"><div class="progress-bar" style="width: ${progress}%"></div></div>
+        <small>${onsiteAvailable} visitas a domicilio disponibles de ${onsiteIncluded}</small>
       </div>
     </section>
     <div class="grid two-col" style="margin-top: 16px;">
@@ -1657,12 +1686,20 @@ function planTemplate() {
           ${meta("Asistencias incluidas", company.includedAssistances)}
           ${meta("Asistencias usadas", company.usedAssistances)}
           ${meta("Asistencias disponibles", available)}
+          ${meta("Visitas a domicilio incluidas", onsiteIncluded)}
+          ${meta("Visitas a domicilio usadas", onsiteUsed)}
+          ${meta("Visitas a domicilio disponibles", onsiteAvailable)}
           ${meta("Equipos principales permitidos", company.maxEquipment)}
           ${meta("Equipos principales registrados", primaryEquipment().length)}
           ${meta("Recursos / Perifericos", peripheralEquipment().length)}
         </div>
         <div class="scope-note" style="margin-top: 14px;">Tu plan contempla soporte sobre equipos principales registrados. Los recursos/perifericos se registran para configuracion, documentacion y soporte basico, pero no cuentan como equipos principales ni incluyen reparacion fisica.</div>
-        <div class="scope-note" style="margin-top: 10px;">Las visitas presenciales incluidas tienen una duracion maxima de 1 hora por visita. Las tareas que requieran mas tiempo, repuestos, licencias o trabajos fuera del alcance se cotizaran aparte.</div>
+        <div class="onsite-quota-card">
+          <span>Cupo presencial independiente</span>
+          <strong>${onsiteAvailable} de ${onsiteIncluded}</strong>
+          <small>visitas a domicilio disponibles. Cada visita incluida contempla hasta 1 hora.</small>
+          <div class="progress-track"><div class="progress-bar" style="width: ${onsiteProgress}%"></div></div>
+        </div>
       </section>
       <section class="panel included-panel">
         <div class="included-head">
@@ -1673,9 +1710,9 @@ function planTemplate() {
           <strong>${plan.shortName}</strong>
         </div>
         <div class="visit-limit-card">
-          <span>Visitas presenciales</span>
-          <strong>Hasta 1 hora</strong>
-          <small>por visita incluida en el plan. Si una tarea requiere mas tiempo, se informa y cotiza antes de avanzar.</small>
+          <span>Visitas presenciales disponibles</span>
+          <strong>${onsiteAvailable} de ${onsiteIncluded}</strong>
+          <small>Cada visita a domicilio incluida dura hasta 1 hora. No se descuenta del soporte general salvo que administracion lo marque.</small>
         </div>
         <div class="included-grid">
           ${plan.features.map((feature, index) => `
@@ -1923,6 +1960,7 @@ function adminCompaniesTemplate() {
               ${meta("Plan", plan.shortName)}
               ${meta("Vencimiento", formatDate(company.renewalDate))}
               ${meta("Asistencias", `${company.usedAssistances}/${company.includedAssistances}`)}
+              ${meta("Visitas domicilio", `${usedOnsiteVisitsFor(company)}/${includedOnsiteVisitsFor(company)}`)}
               ${meta("Equipos principales", `${primaryEquipment(company.id).length}/${company.maxEquipment}`)}
               ${meta("Recursos", peripheralEquipment(company.id).length)}
               ${meta("Login cliente", loginUser ? loginUser.email : "Sin usuario")}
@@ -2874,6 +2912,8 @@ function openCompanyModal(id) {
         <div class="field"><label>Fecha de vencimiento</label><input type="date" name="renewalDate" value="${company?.renewalDate || "2026-06-18"}" /></div>
         <div class="field"><label>Asistencias incluidas</label><input type="number" name="includedAssistances" value="${company?.includedAssistances || defaultPlan.includedAssistances}" readonly /></div>
         <div class="field"><label>Asistencias usadas</label><input type="number" name="usedAssistances" value="${company?.usedAssistances || 0}" /></div>
+        <div class="field"><label>Visitas a domicilio incluidas</label><input type="number" name="includedOnsiteVisits" value="${company?.includedOnsiteVisits ?? includedOnsiteVisitsFor(defaultPlan)}" readonly /></div>
+        <div class="field"><label>Visitas a domicilio usadas</label><input type="number" name="usedOnsiteVisits" value="${company?.usedOnsiteVisits || 0}" /></div>
         <div class="field"><label>Equipos permitidos</label><input type="number" name="maxEquipment" value="${company?.maxEquipment || defaultPlan.maxEquipment}" readonly /></div>
         <div class="field"><label>Login cliente</label><input name="loginEmail" type="email" value="${loginUser?.email || company?.email || ""}" /></div>
         <div class="field"><label>Clave provisoria</label><input name="loginPassword" value="${loginUser?.password || "Cliente2026!"}" /></div>
@@ -2888,6 +2928,7 @@ function openCompanyModal(id) {
   $("[data-company-plan-select]").addEventListener("change", (event) => {
     const selectedPlan = getPlan(event.target.value);
     $("#companyForm [name='includedAssistances']").value = selectedPlan.includedAssistances;
+    $("#companyForm [name='includedOnsiteVisits']").value = includedOnsiteVisitsFor(selectedPlan);
     $("#companyForm [name='maxEquipment']").value = selectedPlan.maxEquipment;
   });
   $("#companyForm").addEventListener("submit", saveCompany);
@@ -2912,6 +2953,8 @@ function saveCompany(event) {
     renewalDate: form.renewalDate,
     includedAssistances: Number(plan?.includedAssistances || form.includedAssistances),
     usedAssistances: Number(form.usedAssistances),
+    includedOnsiteVisits: Number(plan?.includedOnsiteVisits ?? form.includedOnsiteVisits ?? includedOnsiteVisitsFor(plan)),
+    usedOnsiteVisits: Number(form.usedOnsiteVisits || 0),
     maxEquipment: Number(plan?.maxEquipment || form.maxEquipment),
     notes: form.notes,
     createdAt: existing?.createdAt || "2026-05-18",
@@ -3048,6 +3091,7 @@ function openPlanModal(id) {
         <div class="field"><label>Precio</label><input name="price" required value="${plan?.price || ""}" /></div>
         <div class="field"><label>Equipos permitidos</label><input type="number" name="maxEquipment" value="${plan?.maxEquipment || 5}" /></div>
         <div class="field"><label>Asistencias incluidas</label><input type="number" name="includedAssistances" value="${plan?.includedAssistances || 5}" /></div>
+        <div class="field"><label>Visitas a domicilio incluidas</label><input type="number" name="includedOnsiteVisits" value="${plan?.includedOnsiteVisits ?? includedOnsiteVisitsFor(plan || {})}" /></div>
         <div class="field wide"><label>Descripción</label><textarea name="description">${plan?.description || ""}</textarea></div>
         <div class="field wide"><label>Servicios incluidos</label><textarea name="features" placeholder="Un servicio por línea">${plan?.features?.join("\n") || ""}</textarea></div>
       </div>
@@ -3193,6 +3237,7 @@ function savePlan(event) {
     description: form.description,
     maxEquipment: Number(form.maxEquipment),
     includedAssistances: Number(form.includedAssistances),
+    includedOnsiteVisits: Number(form.includedOnsiteVisits || 0),
     features: form.features.split("\n").map((feature) => feature.trim()).filter(Boolean),
   });
   saveState();
@@ -3230,6 +3275,7 @@ function openTicketAdminModal(id) {
         <div class="field wide"><label>Descripción</label><textarea name="description">${ticket?.description || ""}</textarea></div>
         <div class="field wide"><label>Respuesta visible al cliente</label><textarea name="response" placeholder="Escribí una actualización para el cliente."></textarea></div>
         <div class="field"><label>Descuenta asistencia</label><select name="descuentaAsistencia"><option value="false" ${ticket?.descuentaAsistencia === false ? "selected" : ""}>No</option><option value="true" ${ticket?.descuentaAsistencia !== false ? "selected" : ""}>Si</option></select></div>
+        <div class="field"><label>Descuenta visita a domicilio</label><select name="descuentaVisitaDomicilio"><option value="false" ${!ticket?.descuentaVisitaDomicilio ? "selected" : ""}>No</option><option value="true" ${ticket?.descuentaVisitaDomicilio ? "selected" : ""}>Si</option></select></div>
         <div class="field wide">${ticketScopeNotice(ticket?.equipmentId || "other")}</div>
         <div class="field wide"><label>Observaciones internas</label><textarea name="internalNotes">${ticket?.internalNotes || ""}</textarea></div>
       </div>
@@ -3252,6 +3298,7 @@ function saveAdminTicket(event) {
   let ticket = state.tickets.find((item) => item.id === form.id);
   const today = "2026-05-18";
   const previousDiscount = ticket?.descuentaAsistencia === true;
+  const previousOnsiteDiscount = ticket?.descuentaVisitaDomicilio === true;
   if (!ticket) {
     ticket = {
       id: uid("t"),
@@ -3271,6 +3318,7 @@ function saveAdminTicket(event) {
     status: form.status,
     assignedTechnician: form.assignedTechnician,
     descuentaAsistencia: form.descuentaAsistencia === "true",
+    descuentaVisitaDomicilio: form.descuentaVisitaDomicilio === "true",
     internalNotes: form.internalNotes,
     updatedAt: today,
   });
@@ -3286,6 +3334,7 @@ function saveAdminTicket(event) {
     });
   }
   const nextDiscount = form.descuentaAsistencia === "true";
+  const nextOnsiteDiscount = form.descuentaVisitaDomicilio === "true";
   if (nextDiscount !== previousDiscount) {
     const company = getCompany(form.companyId);
     if (company) {
@@ -3294,6 +3343,12 @@ function saveAdminTicket(event) {
   } else if (form.discount === "yes") {
     const company = getCompany(form.companyId);
     if (company) company.usedAssistances = Number(company.usedAssistances) + 1;
+  }
+  if (nextOnsiteDiscount !== previousOnsiteDiscount) {
+    const company = getCompany(form.companyId);
+    if (company) {
+      company.usedOnsiteVisits = Math.max(0, usedOnsiteVisitsFor(company) + (nextOnsiteDiscount ? 1 : -1));
+    }
   }
   saveState();
   $("#modal").close();
