@@ -712,6 +712,13 @@ function escapeAttr(value) {
     .replaceAll(">", "&gt;");
 }
 
+function escapeHtml(value) {
+  return String(value || "")
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;");
+}
+
 function getPlan(id) {
   return state.plans.find((plan) => plan.id === id) || state.plans[1] || planCatalog[1];
 }
@@ -961,6 +968,176 @@ function whatsappPlanMessage(plan) {
     `Incluye: ${plan.features.join(", ")}.`,
     "Nos ocupamos de la tecnología de tu negocio.",
   ].join("\n");
+}
+
+function planAudience(plan) {
+  if (plan.id === "start") return "Ideal para pequeños negocios con hasta 3 equipos principales.";
+  if (plan.id === "pyme") return "Ideal para empresas de 4 a 10 equipos principales.";
+  if (plan.id === "full") return "Pensado para empresas con mayor dependencia tecnológica.";
+  return plan.description;
+}
+
+function planBullets(items) {
+  return items.map((item) => `• ${item}`).join("\n");
+}
+
+function planShareText(plan, version = "short") {
+  if (version === "short") {
+    return [
+      "Hola, te comparto la propuesta de TecnoStore Empresas:",
+      "",
+      plan.name.toUpperCase(),
+      plan.price,
+      "",
+      planAudience(plan),
+      "",
+      "Incluye:",
+      planBullets(plan.features),
+      "",
+      "TecnoStore Empresas",
+      "Nos ocupamos de la tecnología de tu negocio.",
+      "",
+      "WhatsApp: 266 510 5694",
+      "Dirección: Pringles 772",
+    ].join("\n");
+  }
+  return [
+    "Hola, te comparto la propuesta extendida de TecnoStore Empresas:",
+    "",
+    plan.name.toUpperCase(),
+    `Precio mensual: ${plan.price}`,
+    "",
+    "Este plan está pensado para empresas que necesitan soporte técnico organizado, mantenimiento IT y seguimiento de sus equipos.",
+    "",
+    "EQUIPOS PRINCIPALES",
+    "El plan cubre equipos principales registrados, como:",
+    "• PC de escritorio",
+    "• notebooks",
+    "• servidores básicos",
+    "• celulares",
+    "• tablets",
+    "",
+    "SERVICIOS INCLUIDOS",
+    "• soporte remoto",
+    "• soporte presencial según plan",
+    "• mantenimiento preventivo",
+    "• optimización de equipos",
+    "• diagnóstico inicial",
+    "• configuración de software",
+    "• configuración básica de red",
+    "• configuración de impresoras",
+    "• seguimiento de tickets",
+    "• historial tecnico",
+    "",
+    "RECURSOS / PERIFÉRICOS",
+    "También pueden registrarse impresoras, routers, access points, módems, switches y otros dispositivos para documentar la infraestructura de la empresa.",
+    "",
+    "Estos recursos no cuentan como equipos principales y no incluyen reparación física. Su soporte se limita a configuración, conectividad, drivers y orientación técnica.",
+    "",
+    "VISITAS Y ASISTENCIAS",
+    "Las visitas presenciales incluidas tienen una duración máxima de 1 hora por visita.",
+    "Las asistencias corresponden al período mensual activo y no son acumulables.",
+    "Si una tarea requiere más tiempo o queda fuera del alcance del plan, se informa y cotiza aparte.",
+    "",
+    "NO INCLUIDO",
+    "• repuestos",
+    "• licencias",
+    "• insumos",
+    "• reparación física de impresoras",
+    "• reparación física de routers o módems",
+    "• reparación electrónica compleja",
+    "• recuperación avanzada de datos",
+    "• trabajos eléctricos",
+    "• cableado estructural avanzado",
+    "• trabajos fuera de horario",
+    "• equipos no registrados",
+    "• reparaciones físicas de celulares sin cotización previa",
+    "",
+    "TecnoStore Empresas",
+    "Nos ocupamos de la tecnología de tu negocio.",
+    "",
+    "WhatsApp: 266 510 5694",
+    "Dirección: Pringles 772",
+  ].join("\n");
+}
+
+function htmlList(items) {
+  return `<ul>${items.map((item) => `<li>${item}</li>`).join("")}</ul>`;
+}
+
+function coverageBlock(title, content, open = false) {
+  return `<details class="coverage-block" ${open ? "open" : ""}><summary>${title}</summary><div>${content}</div></details>`;
+}
+
+function planCoverageHtml(plan) {
+  const summary = `
+    <div class="coverage-summary-card">
+      <strong>${plan.name}</strong>
+      <span>Precio: ${plan.price}</span>
+      <span>Equipos principales permitidos: ${plan.maxEquipment}</span>
+      <span>Asistencias incluidas: ${plan.includedAssistances}</span>
+      <p>${planAudience(plan)}</p>
+      <b>Incluye resumen:</b>
+      ${htmlList(plan.features)}
+    </div>
+  `;
+  return [
+    coverageBlock("Resumen del plan", summary, true),
+    coverageBlock("Equipos principales", `
+      <p>Los equipos principales son los dispositivos incluidos dentro del soporte técnico del plan contratado.</p>
+      <p>Pueden registrarse como equipos principales:</p>
+      ${htmlList(["PC de escritorio", "Notebook", "Servidor básico", "Celular", "Tablet"])}
+      <p>Estos equipos pueden recibir soporte técnico, mantenimiento, diagnóstico, optimización, asistencia de software y seguimiento dentro del portal.</p>
+    `),
+    coverageBlock("PC / Notebook / Servidor básico", `
+      <p>El soporte puede incluir:</p>
+      ${htmlList(["diagnóstico técnico", "optimización de sistema", "mantenimiento preventivo", "instalación y configuración de software", "soporte remoto", "soporte presencial según plan", "revisión de sistema operativo", "backup básico", "configuración de usuarios", "limpieza de sistema", "seguimiento técnico"])}
+      <p>Si el equipo requiere repuestos, reparación avanzada, recuperación compleja de datos o trabajos fuera del alcance del plan, se informará y cotizará aparte.</p>
+    `),
+    coverageBlock("Celulares / Tablets", `
+      <p>Los celulares y tablets pueden registrarse como equipos principales si la empresa desea incluirlos dentro del soporte.</p>
+      ${htmlList(["diagnóstico inicial", "configuración de cuentas", "correo empresarial", "apps", "sincronización", "backup básico", "asistencia de software", "restablecimiento / formateo", "orientación técnica"])}
+      <p>Las reparaciones físicas, cambios de módulo, batería, pin de carga u otros repuestos se cotizan aparte.</p>
+    `),
+    coverageBlock("Recursos / Periféricos", `
+      <p>Además de los equipos principales, cada empresa puede registrar recursos y periféricos para documentar su infraestructura tecnológica.</p>
+      ${htmlList(["impresoras", "routers", "módems", "access points", "switches", "cámaras IP", "lectores / scanners", "otros dispositivos de apoyo"])}
+      <p>Estos recursos no cuentan como equipos principales del plan.</p>
+      <p>Sirven para:</p>
+      ${htmlList(["tener registro técnico", "guardar marca y modelo", "preparar drivers antes de una visita", "conocer la infraestructura de la empresa", "facilitar tareas de configuración", "agilizar el soporte", "documentar el entorno tecnológico del cliente"])}
+      <p>Los recursos/periféricos no incluyen reparación física del dispositivo. Su soporte se limita a configuración, instalación, conectividad, drivers y orientación técnica según corresponda.</p>
+    `),
+    coverageBlock("Impresoras", `
+      <p>Las impresoras se registran como recursos/periféricos.</p>
+      ${htmlList(["instalación de drivers", "configuración por USB", "configuración en red", "configuración de impresión compartida", "revisión básica de conectividad", "orientación técnica"])}
+      <p>El plan no incluye reparación física, mecánica o electrónica de impresoras. Si el equipo presenta una falla técnica, se informará al cliente y podrá derivarse a un servicio especializado.</p>
+    `),
+    coverageBlock("Routers / Access Points / Red", `
+      <p>Los equipos de red se registran como recursos/periféricos.</p>
+      ${htmlList(["configuración básica", "cambio de nombre de red", "cambio de contraseña WiFi", "revisión de conectividad", "configuración de red básica", "configuración de access point", "orientación técnica"])}
+      <p>El plan no incluye reparación física de routers, módems, switches o access points. Si el dispositivo está dañado, se recomendará reemplazo o derivación técnica.</p>
+    `),
+    coverageBlock("Visitas y asistencias", `
+      <p>Las visitas presenciales incluidas tienen una duración máxima de 1 hora por visita.</p>
+      <p>Durante ese tiempo se podrán realizar tareas de diagnóstico, configuración, soporte, mantenimiento o resolución de problemas dentro del alcance del plan contratado.</p>
+      <p>Si el trabajo requiere más tiempo, repuestos, licencias, recuperación de datos, reparación física o tareas adicionales, se informará previamente y podrá cotizarse como servicio adicional.</p>
+      ${htmlList(["las asistencias incluidas corresponden al período mensual activo", "las asistencias no son acumulables de un mes a otro", "el soporte remoto y presencial está sujeto a disponibilidad y coordinación previa", "las urgencias fuera del horario habitual pueden tener costo adicional", "el administrador puede definir si un ticket descuenta o no una asistencia"])}
+    `),
+    coverageBlock("No incluido en el plan", htmlList(["repuestos", "licencias de software", "insumos", "reparación física de impresoras", "reparación física de routers, módems o access points", "reparación electrónica compleja", "recuperación avanzada de datos", "trabajos eléctricos", "cableado estructural avanzado", "trabajos fuera de horario", "equipos no registrados", "tareas que superen el tiempo incluido por visita", "reparaciones físicas de celulares sin presupuesto previo", "cambios de módulo, batería o pin de carga sin cotización previa"])),
+    coverageBlock("Servicios adicionales", `
+      <p>Los servicios fuera del alcance del plan pueden cotizarse por separado.</p>
+      ${htmlList(["Visita técnica empresarial: $25.000", "Instalación PC corporativa completa: $45.000", "Configuración puestos de trabajo: $30.000", "Configuración impresoras/red: $35.000", "Instalación Windows corporativa: $42.000", "Soporte remoto empresarial: $15.000", "Optimización notebook empresarial: $30.000", "Auditoría inicial empresa: $45.000", "Formateo / restablecimiento celular: $20.000", "Backup y restauración celular: $15.000", "Cambio de módulo / pantalla: desde $28.000 + repuesto", "Cambio de batería: desde $15.000 + repuesto", "Cambio de pin de carga: desde $22.000 + repuesto"])}
+      <p>Los precios pueden modificarse desde administración.</p>
+    `),
+    coverageBlock("Condiciones generales", `
+      <p>Los servicios incluidos en cada plan se aplican sobre equipos principales registrados en el portal de TecnoStore Empresas.</p>
+      <p>También pueden registrarse recursos/periféricos, como impresoras, routers, access points y otros dispositivos, con el objetivo de documentar la infraestructura de la empresa y facilitar tareas de configuración.</p>
+      <p>Los recursos/periféricos no cuentan como equipos principales del plan y no incluyen reparación física.</p>
+      <p>Las visitas presenciales tienen una duración máxima de 1 hora por visita.</p>
+      <p>Si una tarea requiere más tiempo, repuestos, licencias, reparación física o trabajos fuera del alcance contratado, será informado y cotizado como servicio adicional.</p>
+      <p>Las asistencias incluidas corresponden al período mensual activo y no son acumulables.</p>
+    `),
+  ].join("");
 }
 
 function whatsappVisitMessage(visit) {
@@ -2476,7 +2653,8 @@ function adminPlansTemplate() {
           </ul>
           <div class="toolbar plan-actions" style="margin: 14px 0 0;">
             ${canManageSales(user) ? `<button class="soft-button plan-secondary" data-open-plan="${plan.id}">Editar plan</button>` : ""}
-            <a class="button plan-primary" href="${whatsappUrl(whatsappPlanMessage(plan))}" target="_blank" rel="noreferrer">Compartir</a>
+            <button class="button plan-primary" type="button" data-share-plan="${plan.id}">Compartir</button>
+            <button class="soft-button plan-secondary" type="button" data-plan-coverage="${plan.id}">Ver cobertura completa</button>
           </div>
         </article>
       `).join("")}
@@ -2552,6 +2730,12 @@ function bindCurrentViewEvents() {
       }
       openPlanModal(button.dataset.openPlan || "");
     });
+  });
+  document.querySelectorAll("[data-plan-coverage]").forEach((button) => {
+    button.addEventListener("click", () => openPlanCoverageModal(button.dataset.planCoverage));
+  });
+  document.querySelectorAll("[data-share-plan]").forEach((button) => {
+    button.addEventListener("click", () => openPlanShareModal(button.dataset.sharePlan));
   });
   document.querySelectorAll("[data-open-sales-import]").forEach((button) => {
     button.addEventListener("click", openSalesImportModal);
@@ -2750,8 +2934,83 @@ function createPlanUpgradeRequest() {
   }
 }
 
+function openPlanCoverageModal(planId) {
+  const plan = getPlan(planId);
+  openModal(`
+    <div class="modal coverage-modal">
+      <div class="modal-head">
+        <div>
+          <h2>Cobertura completa - ${plan.name}</h2>
+          <p>Detalle de servicios incluidos, condiciones y alcance del plan.</p>
+        </div>
+        <button class="icon-button" type="button" data-close-modal>Ã—</button>
+      </div>
+      <div class="coverage-scroll">
+        ${planCoverageHtml(plan)}
+      </div>
+    </div>
+  `);
+}
+
+function openPlanShareModal(planId) {
+  const plan = getPlan(planId);
+  const initialText = planShareText(plan, "short");
+  openModal(`
+    <div class="modal share-modal">
+      <div class="modal-head">
+        <div>
+          <h2>Compartir oferta</h2>
+          <p>ElegÃ­ quÃ© versiÃ³n querÃ©s enviar.</p>
+        </div>
+        <button class="icon-button" type="button" data-close-modal>Ã—</button>
+      </div>
+      <div class="share-options" role="group" aria-label="Version de propuesta">
+        <button class="soft-button active" type="button" data-share-version="short">VersiÃ³n corta</button>
+        <button class="soft-button" type="button" data-share-version="extended">VersiÃ³n extendida</button>
+      </div>
+      <textarea class="share-text" id="shareText" readonly>${escapeHtml(initialText)}</textarea>
+      <div class="share-feedback" id="shareFeedback" aria-live="polite"></div>
+      <div class="toolbar share-actions">
+        <button class="soft-button" type="button" data-copy-share>Copiar texto</button>
+        <a class="button" id="shareWhatsApp" href="https://wa.me/?text=${encodeURIComponent(initialText)}" target="_blank" rel="noreferrer">Enviar por WhatsApp</a>
+      </div>
+    </div>
+  `);
+
+  const textArea = $("#shareText");
+  const whatsApp = $("#shareWhatsApp");
+  const feedback = $("#shareFeedback");
+  const setVersion = (version) => {
+    const text = planShareText(plan, version);
+    textArea.value = text;
+    whatsApp.href = `https://wa.me/?text=${encodeURIComponent(text)}`;
+    feedback.textContent = "";
+    document.querySelectorAll("[data-share-version]").forEach((button) => {
+      button.classList.toggle("active", button.dataset.shareVersion === version);
+    });
+  };
+
+  document.querySelectorAll("[data-share-version]").forEach((button) => {
+    button.addEventListener("click", () => setVersion(button.dataset.shareVersion));
+  });
+
+  $("[data-copy-share]")?.addEventListener("click", async () => {
+    try {
+      await navigator.clipboard.writeText(textArea.value);
+    } catch (error) {
+      textArea.focus();
+      textArea.select();
+      document.execCommand("copy");
+    }
+    feedback.textContent = "Propuesta copiada correctamente";
+  });
+}
+
 function openModal(html) {
   const dialog = $("#modal");
+  dialog.className = "";
+  if (html.includes("coverage-modal")) dialog.classList.add("wide-dialog");
+  if (html.includes("share-modal")) dialog.classList.add("share-dialog");
   dialog.innerHTML = html;
   dialog.showModal();
   dialog.querySelectorAll("[data-close-modal]").forEach((button) => button.addEventListener("click", () => dialog.close()));

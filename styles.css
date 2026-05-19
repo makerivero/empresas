@@ -871,6 +871,7 @@ button {
 
 .plan-actions {
   align-items: center;
+  justify-content: flex-start;
 }
 
 .plan-card .plan-secondary {
@@ -889,6 +890,11 @@ button {
 .plan-card .plan-primary:hover {
   background: #ffffff;
   transform: translateY(-1px);
+}
+
+.plan-actions .plan-primary,
+.plan-actions .plan-secondary {
+  min-height: 42px;
 }
 
 .item-subtitle {
@@ -1859,6 +1865,14 @@ dialog {
   padding: 0;
 }
 
+dialog.wide-dialog {
+  width: min(94vw, 920px);
+}
+
+dialog.share-dialog {
+  width: min(92vw, 720px);
+}
+
 dialog::backdrop {
   background: rgba(6, 26, 58, 0.44);
 }
@@ -1883,6 +1897,129 @@ dialog::backdrop {
 .modal p {
   margin: 6px 0 0;
   color: var(--muted);
+}
+
+.coverage-modal {
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+  max-height: min(86vh, 820px);
+}
+
+.coverage-scroll {
+  display: grid;
+  gap: 10px;
+  overflow: auto;
+  padding-right: 4px;
+}
+
+.coverage-block {
+  border: 1px solid rgba(0, 107, 214, 0.14);
+  border-radius: 16px;
+  background:
+    radial-gradient(circle at 96% 0%, rgba(0, 140, 255, 0.08), transparent 28%),
+    linear-gradient(135deg, #ffffff, #f7fbff);
+  box-shadow: 0 12px 28px rgba(6, 26, 58, 0.06);
+  overflow: hidden;
+}
+
+.coverage-block summary {
+  cursor: pointer;
+  color: var(--navy);
+  font-weight: 900;
+  list-style: none;
+  padding: 15px 16px;
+}
+
+.coverage-block summary::-webkit-details-marker {
+  display: none;
+}
+
+.coverage-block summary::after {
+  content: "+";
+  float: right;
+  color: var(--blue);
+  font-weight: 900;
+}
+
+.coverage-block[open] summary::after {
+  content: "-";
+}
+
+.coverage-block > div {
+  border-top: 1px solid rgba(0, 107, 214, 0.10);
+  color: var(--muted);
+  font-size: 14px;
+  line-height: 1.55;
+  padding: 0 16px 16px;
+}
+
+.coverage-block ul {
+  display: grid;
+  gap: 7px;
+  margin: 11px 0 0;
+  padding-left: 20px;
+}
+
+.coverage-block li::marker {
+  color: var(--blue);
+}
+
+.coverage-summary-card {
+  display: grid;
+  gap: 7px;
+  border: 1px solid rgba(0, 107, 214, 0.12);
+  border-radius: 14px;
+  background: linear-gradient(135deg, #eef7ff, #ffffff);
+  color: var(--navy);
+  padding: 14px;
+}
+
+.coverage-summary-card strong {
+  font-size: 18px;
+}
+
+.coverage-summary-card span,
+.coverage-summary-card p,
+.coverage-summary-card b {
+  color: var(--navy);
+}
+
+.share-options {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.share-options .active {
+  background: var(--blue);
+  color: white;
+  box-shadow: 0 10px 22px rgba(0, 107, 214, 0.18);
+}
+
+.share-text {
+  width: 100%;
+  min-height: 270px;
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  background: linear-gradient(180deg, #ffffff, #f8fbff);
+  color: var(--text);
+  line-height: 1.5;
+  margin-top: 14px;
+  padding: 14px;
+  resize: vertical;
+}
+
+.share-feedback {
+  min-height: 20px;
+  color: var(--success);
+  font-size: 13px;
+  font-weight: 900;
+  margin-top: 8px;
+}
+
+.share-actions {
+  justify-content: flex-start;
+  margin: 8px 0 0;
 }
 
 .admin-only,
@@ -2057,6 +2194,19 @@ body.client .client-only {
   .visit-meta,
   .visit-actions {
     grid-template-columns: 1fr;
+  }
+
+  .plan-actions,
+  .share-actions {
+    display: grid;
+    grid-template-columns: 1fr;
+  }
+
+  .plan-actions .button,
+  .plan-actions .soft-button,
+  .share-actions .button,
+  .share-actions .soft-button {
+    width: 100%;
   }
 
   .login-card {
