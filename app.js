@@ -1149,6 +1149,77 @@ function planCoverageHtml(plan) {
   ].join("");
 }
 
+function planCoverageReadableHtml(plan) {
+  const card = (title, body, tone = "") => `
+    <section class="scope-detail-card ${tone}">
+      <h3>${title}</h3>
+      <div class="scope-detail-body">${body}</div>
+    </section>
+  `;
+  return `
+    <div class="scope-detail-hero">
+      <div>
+        <span class="scope-kicker">Plan seleccionado</span>
+        <h3>${plan.name}</h3>
+        <p>${planAudience(plan)}</p>
+      </div>
+      <div class="scope-price">${plan.price}</div>
+    </div>
+    <div class="scope-detail-metrics">
+      <span><small>Equipos principales</small><strong>${plan.maxEquipment}</strong></span>
+      <span><small>Asistencias mensuales</small><strong>${plan.includedAssistances}</strong></span>
+      <span><small>Visita presencial</small><strong>hasta 1 hora</strong></span>
+    </div>
+    ${card("Servicios incluidos", `
+      <p>Este plan contempla soporte técnico organizado, mantenimiento IT y seguimiento dentro del portal.</p>
+      ${htmlList(plan.features)}
+    `, "accent")}
+    ${card("Equipos principales", `
+      <p>Son los dispositivos incluidos dentro del soporte técnico central del plan contratado.</p>
+      ${htmlList(["PC de escritorio", "Notebook", "Servidor básico", "Celular", "Tablet"])}
+      <p>Estos equipos pueden recibir diagnóstico, mantenimiento, optimización, asistencia de software, backup básico y seguimiento técnico.</p>
+    `)}
+    ${card("PC / Notebook / Servidor básico", `
+      <p>El soporte puede incluir diagnóstico técnico, optimización de sistema, mantenimiento preventivo, instalación y configuración de software, soporte remoto, soporte presencial según plan, revisión de sistema operativo, configuración de usuarios y limpieza de sistema.</p>
+      <p>Si requiere repuestos, reparación avanzada, recuperación compleja de datos o trabajos fuera del alcance, se informa y cotiza aparte.</p>
+    `)}
+    ${card("Celulares / Tablets", `
+      <p>Pueden registrarse como equipos principales si la empresa desea incluirlos dentro del soporte.</p>
+      <p>Incluye configuración de cuentas, correo empresarial, apps, sincronización, backup básico, asistencia de software, restablecimiento/formateo y orientación técnica.</p>
+      <p>Las reparaciones físicas, cambios de módulo, batería, pin de carga u otros repuestos se cotizan aparte.</p>
+    `)}
+    ${card("Recursos / Periféricos", `
+      <p>Sirven para documentar la infraestructura tecnológica de la empresa y facilitar tareas de configuración.</p>
+      ${htmlList(["impresoras", "routers", "módems", "access points", "switches", "cámaras IP", "lectores / scanners", "otros dispositivos de apoyo"])}
+      <p>No cuentan como equipos principales del plan y no incluyen reparación física del dispositivo.</p>
+    `)}
+    ${card("Impresoras", `
+      <p>El soporte puede incluir instalación de drivers, configuración por USB, configuración en red, impresión compartida, revisión básica de conectividad y orientación técnica.</p>
+      <p>No incluye reparación física, mecánica o electrónica de impresoras.</p>
+    `)}
+    ${card("Routers / Access Points / Red", `
+      <p>El soporte puede incluir configuración básica, cambio de nombre de red, cambio de contraseña WiFi, revisión de conectividad, configuración de red básica y access points.</p>
+      <p>No incluye reparación física de routers, módems, switches o access points.</p>
+    `)}
+    ${card("Visitas y asistencias", `
+      <p><strong>Las visitas presenciales incluidas tienen una duración máxima de 1 hora por visita.</strong></p>
+      <p>Durante ese tiempo se realizan tareas de diagnóstico, configuración, soporte, mantenimiento o resolución de problemas dentro del alcance contratado.</p>
+      ${htmlList(["las asistencias corresponden al período mensual activo", "las asistencias no son acumulables", "el soporte remoto y presencial está sujeto a disponibilidad y coordinación previa", "el administrador puede definir si un ticket descuenta o no una asistencia"])}
+    `, "warning")}
+    ${card("No incluido en el plan", `
+      ${htmlList(["repuestos", "licencias de software", "insumos", "reparación física de impresoras", "reparación física de routers, módems o access points", "reparación electrónica compleja", "recuperación avanzada de datos", "trabajos eléctricos", "cableado estructural avanzado", "trabajos fuera de horario", "equipos no registrados", "tareas que superen el tiempo incluido por visita", "reparaciones físicas de celulares sin presupuesto previo"])}
+    `)}
+    ${card("Servicios adicionales", `
+      <p>Los trabajos fuera del alcance del plan pueden cotizarse por separado.</p>
+      ${htmlList(["Visita técnica empresarial: $25.000", "Instalación PC corporativa completa: $45.000", "Configuración puestos de trabajo: $30.000", "Configuración impresoras/red: $35.000", "Instalación Windows corporativa: $42.000", "Soporte remoto empresarial: $15.000", "Optimización notebook empresarial: $30.000", "Auditoría inicial empresa: $45.000"])}
+    `)}
+    ${card("Condiciones generales", `
+      <p>Los servicios incluidos aplican sobre equipos principales registrados en el portal. Los recursos/periféricos se registran para documentación, configuración y soporte básico, pero no cuentan como equipos principales ni incluyen reparación física.</p>
+      <p>Si una tarea requiere más tiempo, repuestos, licencias, reparación física o trabajos fuera del alcance contratado, será informado y cotizado como servicio adicional.</p>
+    `)}
+  `;
+}
+
 function whatsappVisitMessage(visit) {
   return [
     "Hola, soy de TecnoStore Empresas.",
@@ -2954,14 +3025,11 @@ function openPlanCoverageModal(planId) {
         </div>
         <button class="icon-button" type="button" data-close-modal>Ã—</button>
       </div>
-      <div class="coverage-scroll">
-        ${planCoverageHtml(plan)}
+      <div class="scope-detail-scroll">
+        ${planCoverageReadableHtml(plan)}
       </div>
     </div>
   `);
-  document.querySelectorAll("#modal details.coverage-block").forEach((block) => {
-    block.open = true;
-  });
 }
 
 function openPlanShareModal(planId) {

@@ -1912,6 +1912,144 @@ dialog::backdrop {
   padding-right: 4px;
 }
 
+.scope-detail-scroll {
+  display: grid;
+  gap: 14px;
+  overflow: auto;
+  padding: 0 4px 2px 0;
+}
+
+.scope-detail-hero {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  border: 1px solid rgba(0, 107, 214, 0.20);
+  border-radius: 20px;
+  background:
+    radial-gradient(circle at 96% 8%, rgba(0, 140, 255, 0.18), transparent 32%),
+    linear-gradient(135deg, #061a3a, #006bd6);
+  color: white;
+  padding: 18px;
+  box-shadow: 0 18px 40px rgba(0, 107, 214, 0.18);
+}
+
+.scope-detail-hero h3 {
+  color: white;
+  font-size: 24px;
+  margin: 4px 0 6px;
+}
+
+.scope-detail-hero p {
+  color: rgba(255, 255, 255, 0.84);
+  line-height: 1.45;
+  margin: 0;
+}
+
+.scope-kicker {
+  color: rgba(255, 255, 255, 0.68);
+  font-size: 12px;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.scope-price {
+  flex: 0 0 auto;
+  border: 1px solid rgba(255, 255, 255, 0.36);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.16);
+  color: white;
+  font-weight: 900;
+  padding: 9px 13px;
+  white-space: nowrap;
+}
+
+.scope-detail-metrics {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.scope-detail-metrics span {
+  display: grid;
+  gap: 5px;
+  border: 1px solid rgba(0, 107, 214, 0.14);
+  border-radius: 16px;
+  background: linear-gradient(135deg, #ffffff, #eef7ff);
+  padding: 13px;
+}
+
+.scope-detail-metrics small {
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.scope-detail-metrics strong {
+  color: var(--navy);
+  font-size: 19px;
+}
+
+.scope-detail-card {
+  border: 1px solid rgba(0, 107, 214, 0.14);
+  border-left: 5px solid var(--blue);
+  border-radius: 18px;
+  background:
+    radial-gradient(circle at 98% 4%, rgba(0, 140, 255, 0.08), transparent 28%),
+    linear-gradient(135deg, #ffffff, #f7fbff);
+  box-shadow: 0 14px 32px rgba(6, 26, 58, 0.07);
+  padding: 16px;
+}
+
+.scope-detail-card.accent {
+  border-left-color: var(--electric);
+  background:
+    radial-gradient(circle at 98% 4%, rgba(0, 140, 255, 0.14), transparent 30%),
+    linear-gradient(135deg, #eef7ff, #ffffff);
+}
+
+.scope-detail-card.warning {
+  border-left-color: var(--warning);
+  background:
+    radial-gradient(circle at 98% 4%, rgba(245, 158, 11, 0.16), transparent 30%),
+    linear-gradient(135deg, #fffbeb, #ffffff);
+}
+
+.scope-detail-card h3 {
+  color: var(--navy);
+  font-size: 18px;
+  margin: 0 0 10px;
+}
+
+.scope-detail-body {
+  color: var(--muted);
+  font-size: 14px;
+  line-height: 1.58;
+}
+
+.scope-detail-body p {
+  margin: 0 0 9px;
+}
+
+.scope-detail-body p:last-child {
+  margin-bottom: 0;
+}
+
+.scope-detail-body strong {
+  color: var(--navy);
+}
+
+.scope-detail-body ul {
+  display: grid;
+  gap: 7px;
+  margin: 10px 0;
+  padding-left: 20px;
+}
+
+.scope-detail-body li::marker {
+  color: var(--blue);
+}
+
 .plan-coverage-card {
   border: 1px solid rgba(0, 107, 214, 0.14);
   border-radius: 18px;
@@ -2226,6 +2364,36 @@ details.coverage-block:not([open]) > :not(summary) {
   .coverage-scroll {
     gap: 12px;
     padding-right: 0;
+  }
+
+  .scope-detail-scroll {
+    gap: 12px;
+    padding-right: 0;
+  }
+
+  .scope-detail-hero {
+    display: grid;
+    padding: 15px;
+  }
+
+  .scope-detail-hero h3 {
+    font-size: 22px;
+  }
+
+  .scope-price {
+    justify-self: start;
+  }
+
+  .scope-detail-metrics {
+    grid-template-columns: 1fr;
+  }
+
+  .scope-detail-card {
+    padding: 14px;
+  }
+
+  .scope-detail-card h3 {
+    font-size: 17px;
   }
 
   .coverage-title,
