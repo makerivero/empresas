@@ -106,15 +106,60 @@ button {
   animation: scanLine 6s ease-in-out infinite;
 }
 
+.login-splash {
+  position: fixed;
+  inset: 0;
+  z-index: 20;
+  display: grid;
+  place-items: center;
+  background:
+    radial-gradient(circle at 50% 42%, rgba(0, 140, 255, 0.34), transparent 34%),
+    linear-gradient(135deg, #061a3a, #006bd6);
+  pointer-events: none;
+  animation: splashOut 0.9s ease forwards;
+}
+
+.login-splash img {
+  width: min(58vw, 360px);
+  max-height: 130px;
+  object-fit: contain;
+  filter: drop-shadow(0 20px 40px rgba(0, 0, 0, 0.25));
+  animation: splashLogo 0.9s ease forwards;
+}
+
 @keyframes techDrift {
   from { transform: translate3d(0, 0, 0); }
   to { transform: translate3d(72px, 72px, 0); }
+}
+
+@keyframes splashOut {
+  0%, 48% { opacity: 1; visibility: visible; }
+  100% { opacity: 0; visibility: hidden; }
+}
+
+@keyframes splashLogo {
+  0% { opacity: 0; transform: scale(0.92); }
+  28% { opacity: 1; transform: scale(1); }
+  100% { opacity: 0; transform: scale(1.08); }
 }
 
 @keyframes scanLine {
   0%, 100% { transform: translateX(0); opacity: 0; }
   18%, 70% { opacity: 0.75; }
   100% { transform: translateX(150vw); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .login-shell::before,
+  .login-shell::after,
+  .login-splash,
+  .login-splash img {
+    animation: none;
+  }
+
+  .login-splash {
+    display: none;
+  }
 }
 
 .login-visual {
@@ -126,20 +171,20 @@ button {
 }
 
 .login-copy {
-  max-width: 620px;
+  max-width: 650px;
 }
 
 .login-copy h1 {
-  margin: 0 0 18px;
-  font-size: clamp(40px, 6vw, 72px);
-  line-height: 0.98;
+  margin: 0 0 20px;
+  font-size: clamp(46px, 6.2vw, 82px);
+  line-height: 0.95;
   letter-spacing: 0;
 }
 
 .login-copy p {
   color: rgba(255, 255, 255, 0.84);
-  font-size: 18px;
-  line-height: 1.6;
+  font-size: 19px;
+  line-height: 1.55;
   margin: 0 0 36px;
 }
 
@@ -176,11 +221,11 @@ button {
 }
 
 .login-card {
-  width: min(100%, 440px);
-  border-radius: 12px;
+  width: min(100%, 430px);
+  border-radius: 18px;
   background: white;
-  box-shadow: var(--shadow);
-  padding: 30px;
+  box-shadow: 0 24px 64px rgba(6, 26, 58, 0.22);
+  padding: 34px;
 }
 
 .brand {
@@ -202,8 +247,8 @@ button {
 }
 
 .brand-logo {
-  width: 154px;
-  height: 42px;
+  width: 174px;
+  height: 50px;
   object-fit: contain;
   object-position: left center;
 }
@@ -211,6 +256,10 @@ button {
 .login-card .brand,
 .sidebar .brand {
   align-items: center;
+}
+
+.login-card .brand {
+  justify-content: center;
 }
 
 .login-card .brand > div:not(:first-child),
@@ -230,13 +279,13 @@ button {
 }
 
 .login-card h2 {
-  margin: 30px 0 6px;
+  margin: 28px 0 6px;
   color: var(--navy);
-  font-size: 26px;
+  font-size: 30px;
 }
 
 .login-card > p {
-  margin: 0 0 24px;
+  margin: 0 0 22px;
   color: var(--muted);
   line-height: 1.5;
 }
@@ -349,14 +398,16 @@ button {
 .login-actions {
   display: grid;
   gap: 12px;
-  margin-top: 22px;
+  margin-top: 20px;
 }
 
 .helper-text {
-  margin-top: 18px;
+  margin: 16px auto 0;
   color: var(--muted);
   font-size: 13px;
   line-height: 1.5;
+  max-width: 330px;
+  text-align: center;
 }
 
 .app-shell {
@@ -1888,12 +1939,13 @@ body.client .client-only {
 
 @media (min-width: 720px) {
   .login-shell {
-    grid-template-columns: minmax(0, 1fr) 520px;
+    grid-template-columns: minmax(0, 1fr) 500px;
   }
 
   .login-visual {
     display: flex;
     align-items: center;
+    padding-left: clamp(44px, 6vw, 76px);
   }
 
   .stats-grid {
@@ -1941,7 +1993,14 @@ body.client .client-only {
   }
 
   .sidebar .brand {
-    margin-bottom: 26px;
+    justify-content: center;
+    margin-bottom: 28px;
+  }
+
+  .sidebar .brand-logo {
+    width: 192px;
+    height: 56px;
+    object-position: center;
   }
 
   .nav {

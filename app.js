@@ -1122,6 +1122,9 @@ function render() {
 function loginTemplate() {
   return `
     <main class="login-shell">
+      <div class="login-splash" aria-hidden="true">
+        <img src="/assets/logo.png" alt="" />
+      </div>
       <section class="login-visual">
         <div class="login-copy">
           <h1>Portal TecnoStore</h1>
@@ -1129,7 +1132,7 @@ function loginTemplate() {
         </div>
       </section>
       <section class="login-panel">
-        <form class="login-card" id="loginForm">
+        <form class="login-card" id="loginForm" autocomplete="off">
           <div class="brand">
             <img class="brand-logo" src="/assets/logo.png" alt="TecnoStore Empresas" />
             <div>
@@ -1141,7 +1144,7 @@ function loginTemplate() {
           <p>Portal de soporte técnico para empresas y PYMES.</p>
           <div class="field">
             <label for="email">Email</label>
-            <input id="email" type="email" placeholder="tuempresa@correo.com" autocomplete="email" required />
+            <input id="email" type="email" placeholder="tuempresa@correo.com" autocomplete="off" required />
           </div>
           <div class="field">
             <label for="password">Contraseña</label>
@@ -1159,6 +1162,10 @@ function loginTemplate() {
     .replace(
       /placeholder="Tu .*?"/,
       'placeholder="Tu clave"'
+    )
+    .replace(
+      /autocomplete="current-password"/,
+      'autocomplete="new-password"'
     )
     .replace(
       /<p class="helper-text">.*?<\/p>/,
