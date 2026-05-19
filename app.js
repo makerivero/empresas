@@ -1122,9 +1122,6 @@ function render() {
 function loginTemplate() {
   return `
     <main class="login-shell">
-      <div class="login-splash" aria-hidden="true">
-        <img src="/assets/logo.png" alt="" />
-      </div>
       <section class="login-visual">
         <div class="login-copy">
           <h1>Portal TecnoStore</h1>

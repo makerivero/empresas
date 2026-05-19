@@ -4,6 +4,50 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Portal TecnoStore Empresas</title>
+    <style>
+      html,
+      body {
+        background: #061a3a;
+      }
+
+      .boot-splash {
+        position: fixed;
+        inset: 0;
+        z-index: 9999;
+        display: grid;
+        place-items: center;
+        background:
+          radial-gradient(circle at 50% 42%, rgba(0, 140, 255, 0.34), transparent 34%),
+          linear-gradient(135deg, #061a3a, #006bd6);
+        pointer-events: none;
+        animation: bootSplashOut 0.9s ease forwards;
+      }
+
+      .boot-splash img {
+        width: min(58vw, 360px);
+        max-height: 130px;
+        object-fit: contain;
+        filter: drop-shadow(0 20px 40px rgba(0, 0, 0, 0.25));
+        animation: bootLogoOut 0.9s ease forwards;
+      }
+
+      @keyframes bootSplashOut {
+        0%, 48% { opacity: 1; visibility: visible; }
+        100% { opacity: 0; visibility: hidden; }
+      }
+
+      @keyframes bootLogoOut {
+        0% { opacity: 0; transform: scale(0.92); }
+        28% { opacity: 1; transform: scale(1); }
+        100% { opacity: 0; transform: scale(1.08); }
+      }
+
+      @media (prefers-reduced-motion: reduce) {
+        .boot-splash {
+          display: none;
+        }
+      }
+    </style>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
@@ -13,6 +57,9 @@
     <link rel="stylesheet" href="./styles.css" />
   </head>
   <body>
+    <div class="boot-splash" aria-hidden="true">
+      <img src="/assets/logo.png" alt="" />
+    </div>
     <div id="app"></div>
     <script type="module" src="./app.js"></script>
   </body>
