@@ -773,6 +773,10 @@ function canManageSales(user = currentUser()) {
   return user && ["Administrador", "Asistente comercial"].includes(user.role);
 }
 
+function canDeleteSalesVisits(user = currentUser()) {
+  return user?.role === "Administrador";
+}
+
 function canCreateCustomer(user = currentUser()) {
   return user && ["Administrador", "Asistente comercial", "Vendedor"].includes(user.role);
 }
@@ -2204,7 +2208,7 @@ function visitCard(visit) {
         </select>
         <a class="visit-action map" href="${mapsDirectionsUrl(visit)}" target="_blank" rel="noreferrer">Ir</a>
         ${whatsappLink ? `<a class="visit-action whatsapp" href="${whatsappLink}" target="_blank" rel="noreferrer">WhatsApp</a>` : ""}
-        ${canManageSales() ? `<button class="visit-action danger" type="button" data-delete-visit="${visit.id}">Eliminar</button>` : ""}
+        ${canDeleteSalesVisits() ? `<button class="visit-action danger" type="button" data-delete-visit="${visit.id}">Eliminar</button>` : ""}
       </div>
     </article>
   `;
@@ -3029,6 +3033,10 @@ function updateVisitStatus(id, status) {
 }
 
 function deleteSalesVisit(id) {
+  if (!canDeleteSalesVisits()) {
+    alert("Solo el administrador puede eliminar prospectos del listado comercial.");
+    return;
+  }
   const visit = state.salesVisits.find((item) => item.id === id);
   if (!visit) return;
   const ok = confirm(`Vas a eliminar "${visit.businessName}" del listado comercial. Esta accion no borra ninguna empresa cliente real.`);
