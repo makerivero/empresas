@@ -54,3 +54,5 @@ El logo real está en `public/assets/logo.png` para que Vercel lo publique en pr
 - En empresas, el admin puede cargar el email y clave provisoria del login cliente.
 - En usuarios, se pueden cargar técnicos, vendedores y asistentes comerciales.
 - En planes, el equipo comercial puede crear o editar propuestas.
+- En ventas, el administrador o asistente comercial puede cargar zonas y prospectos pegando listados.
+- Los vendedores ven sus visitas asignadas, cambian estado y pueden compartir planes por WhatsApp.

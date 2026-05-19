@@ -28,6 +28,7 @@ const subscriptionStatuses = ["Activa", "Pendiente de pago", "Vencida", "Suspend
 const internalRoles = ["Administrador", "Asistente comercial", "Vendedor", "Técnico"];
 const closedTicketStatuses = ["Resuelto", "Cerrado", "Cancelado"];
 const closedRepairStatuses = ["Entregado", "Cancelado"];
+const visitStatuses = ["Pendiente", "Visitado", "No visitado", "Interesado", "Contrató"];
 
 const planCatalog = [
   {
@@ -82,6 +83,7 @@ const planCatalog = [
 const defaultState = {
   loggedIn: false,
   role: "client",
+  currentUserId: "",
   currentCompanyId: "c1",
   selectedTicketId: "t1",
   clientView: "dashboard",
@@ -93,6 +95,60 @@ const defaultState = {
     ticketCompany: "Todas",
   },
   plans: structuredClone(planCatalog),
+  salesZones: [
+    {
+      id: "z1",
+      name: "Zona Centro",
+      description: "Comercios de atención al público en microcentro.",
+      assignedSellerId: "u-sales-2",
+      createdAt: "2026-05-18",
+    },
+    {
+      id: "z2",
+      name: "Zona Oeste",
+      description: "Locales y oficinas sobre corredores comerciales.",
+      assignedSellerId: "u-sales-1",
+      createdAt: "2026-05-18",
+    },
+  ],
+  salesVisits: [
+    {
+      id: "v1",
+      zoneId: "z1",
+      assignedSellerId: "u-sales-2",
+      businessName: "Farmacia Avenida",
+      contactName: "María Torres",
+      phone: "266 410 2201",
+      address: "Av. Illia 420, San Luis",
+      notes: "Tiene 4 PCs, impresora en red y consulta por mantenimiento mensual.",
+      status: "Pendiente",
+      lastUpdate: "2026-05-18",
+    },
+    {
+      id: "v2",
+      zoneId: "z1",
+      assignedSellerId: "u-sales-2",
+      businessName: "Estética Centro",
+      contactName: "Laura Ponce",
+      phone: "266 455 1180",
+      address: "Rivadavia 812, San Luis",
+      notes: "Usan notebook e impresora. Preguntar por backup y antivirus.",
+      status: "Interesado",
+      lastUpdate: "2026-05-18",
+    },
+    {
+      id: "v3",
+      zoneId: "z2",
+      assignedSellerId: "u-sales-1",
+      businessName: "Ferretería Oeste",
+      contactName: "Carlos Gómez",
+      phone: "266 430 8890",
+      address: "Justo Daract 1450, San Luis",
+      notes: "Sistema de facturación lento. Buen candidato Plan Start.",
+      status: "Pendiente",
+      lastUpdate: "2026-05-18",
+    },
+  ],
   users: [
     {
       id: "u-client-1",
@@ -498,6 +554,14 @@ function getEquipment(id) {
   return state.equipment.find((item) => item.id === id);
 }
 
+function currentUser() {
+  return state.users.find((user) => user.id === state.currentUserId) || null;
+}
+
+function userDisplayName(id) {
+  return state.users.find((user) => user.id === id)?.name || "Sin asignar";
+}
+
 function getCompanyUser(companyId) {
   return state.users.find((user) => user.companyId === companyId && user.role === "Cliente empresa");
 }
@@ -522,6 +586,29 @@ function isUrgentTicket(ticket) {
 
 function isActiveRepair(repair) {
   return !closedRepairStatuses.includes(repair.status);
+}
+
+function isSalesUser(user = currentUser()) {
+  return user && ["Vendedor", "Asistente comercial"].includes(user.role);
+}
+
+function canManageSales(user = currentUser()) {
+  return user && ["Administrador", "Asistente comercial"].includes(user.role);
+}
+
+function sellerOptions(selected = "") {
+  const sellers = state.users.filter((user) => user.active && ["Vendedor", "Asistente comercial"].includes(user.role));
+  return sellers.map((user) => `<option value="${user.id}" ${selected === user.id ? "selected" : ""}>${user.name} · ${user.role}</option>`).join("");
+}
+
+function zoneName(zoneId) {
+  return state.salesZones.find((zone) => zone.id === zoneId)?.name || "Sin zona";
+}
+
+function salesVisitsForCurrentUser() {
+  const user = currentUser();
+  if (!user || canManageSales(user)) return state.salesVisits;
+  return state.salesVisits.filter((visit) => visit.assignedSellerId === user.id);
 }
 
 function companyEquipment(companyId = state.currentCompanyId) {
@@ -558,10 +645,13 @@ function statusClass(status) {
   if (["activa", "activo", "resuelto", "cerrado", "entregado", "listo para retirar"].some((word) => text.includes(word))) {
     return "success";
   }
-  if (["alta", "crítica", "vencida", "suspendida", "cancelado"].some((word) => text.includes(word))) {
+  if (["contrató", "contrato", "visitado"].some((word) => text.includes(word))) {
+    return "success";
+  }
+  if (["alta", "crítica", "vencida", "suspendida", "cancelado", "no visitado"].some((word) => text.includes(word))) {
     return "danger";
   }
-  if (["pendiente", "esperando", "programado", "diagnosticado", "en revisión", "en reparación", "en proceso"].some((word) => text.includes(word))) {
+  if (["pendiente", "esperando", "programado", "diagnosticado", "en revisión", "en reparación", "en proceso", "interesado"].some((word) => text.includes(word))) {
     return "warning";
   }
   return "";
@@ -584,6 +674,24 @@ function whatsappTicketMessage(ticket) {
   ].join("\n");
 }
 
+function whatsappPlanMessage(plan) {
+  return [
+    `Hola, te comparto ${plan.name} de TecnoStore Empresas.`,
+    `${plan.description}`,
+    `Precio: ${plan.price}`,
+    `Incluye: ${plan.features.join(", ")}.`,
+    "Nos ocupamos de la tecnología de tu negocio.",
+  ].join("\n");
+}
+
+function whatsappVisitMessage(visit) {
+  return [
+    "Hola, soy de TecnoStore Empresas.",
+    `Quería coordinar una visita o consulta para ${visit.businessName}.`,
+    "Brindamos soporte técnico y mantenimiento IT para comercios y PYMES.",
+  ].join("\n");
+}
+
 function adminNotifications() {
   return state.tickets
     .filter((ticket) => isOpenTicket(ticket))
@@ -600,12 +708,20 @@ function badge(text) {
 
 function navItems() {
   if (state.role === "admin") {
+    const user = currentUser();
+    if (user?.role === "Vendedor") {
+      return [
+        ["admin-sales", "Mis visitas", "◇"],
+        ["admin-plans", "Planes", "◎"],
+      ];
+    }
     return [
       ["admin-dashboard", "Inicio", "◧"],
       ["admin-companies", "Empresas", "□"],
       ["admin-tickets", "Tickets", "≡"],
       ["admin-repairs", "Reparaciones", "◇"],
       ["admin-equipment", "Equipos", "▣"],
+      ["admin-sales", "Ventas", "◌"],
       ["admin-users", "Usuarios", "♙"],
       ["admin-plans", "Planes", "◎"],
     ];
@@ -643,13 +759,14 @@ function login(email = "") {
     return;
   }
   state.loggedIn = true;
+  state.currentUserId = user?.id || "";
   if (user?.role === "Cliente empresa") {
     state.role = "client";
     state.currentCompanyId = user.companyId || state.currentCompanyId;
     state.clientView = "dashboard";
   } else {
     state.role = user ? "admin" : "client";
-    if (state.role === "admin") state.adminView = "admin-dashboard";
+    if (state.role === "admin") state.adminView = user?.role === "Vendedor" ? "admin-sales" : "admin-dashboard";
     else state.clientView = "dashboard";
   }
   saveState();
@@ -688,7 +805,7 @@ function loginTemplate() {
       <section class="login-panel">
         <form class="login-card" id="loginForm">
           <div class="brand">
-            <img class="brand-logo" src="./assets/logo.png" alt="TecnoStore Empresas" />
+            <img class="brand-logo" src="/assets/logo.png" alt="TecnoStore Empresas" />
             <div>
               <strong>TecnoStore Empresas</strong>
               <span>Portal privado de soporte IT</span>
@@ -717,6 +834,7 @@ function loginTemplate() {
 
 function shellTemplate() {
   const company = getCompany();
+  const user = currentUser();
   const items = navItems();
   const current = activeView();
   const notifications = adminNotifications();
@@ -724,7 +842,15 @@ function shellTemplate() {
     .map(([id, label, icon]) => `<button class="${current === id ? "active" : ""}" data-view="${id}"><span>${icon}</span>${label}</button>`)
     .join("");
   const mobileItems = state.role === "admin"
-    ? items.slice(0, 5)
+    ? (currentUser()?.role === "Vendedor"
+        ? items
+        : [
+            ["admin-dashboard", "Inicio", "◧"],
+            ["admin-tickets", "Tickets", "≡"],
+            ["admin-repairs", "Repar.", "◇"],
+            ["admin-sales", "Ventas", "◌"],
+            ["admin-plans", "Planes", "◎"],
+          ])
     : [
         ["dashboard", "Inicio", "◧"],
         ["equipment", "Equipos", "▣"],
@@ -740,7 +866,7 @@ function shellTemplate() {
     <div class="app-shell">
       <aside class="sidebar">
         <div class="brand">
-          <img class="brand-logo" src="./assets/logo.png" alt="TecnoStore Empresas" />
+          <img class="brand-logo" src="/assets/logo.png" alt="TecnoStore Empresas" />
           <div>
             <strong>TecnoStore Empresas</strong>
             <span>Soporte IT organizado</span>
@@ -755,14 +881,14 @@ function shellTemplate() {
       <main>
         <header class="topbar">
           <div class="brand">
-            <img class="brand-logo" src="./assets/logo.png" alt="TecnoStore Empresas" />
+            <img class="brand-logo" src="/assets/logo.png" alt="TecnoStore Empresas" />
             <div>
               <strong>TecnoStore Empresas</strong>
               <span>Portal privado de soporte IT</span>
             </div>
           </div>
           <div class="topbar-actions">
-            <span class="role-pill">${state.role === "admin" ? "Administrador TecnoStore" : company.name}</span>
+            <span class="role-pill">${state.role === "admin" ? `${user?.role || "Administrador"} · ${user?.name || "TecnoStore"}` : company.name}</span>
             ${state.role === "admin" ? `<button class="notification-button" type="button" data-open-notifications title="Notificaciones"><span>!</span>${notifications.length ? `<strong>${notifications.length}</strong>` : ""}</button>` : ""}
             <button class="icon-button" type="button" data-logout title="Salir">×</button>
           </div>
@@ -783,6 +909,7 @@ function contentTemplate() {
       "admin-tickets": adminTicketsTemplate,
       "admin-repairs": adminRepairsTemplate,
       "admin-equipment": adminEquipmentTemplate,
+      "admin-sales": adminSalesTemplate,
       "admin-users": adminUsersTemplate,
       "admin-plans": adminPlansTemplate,
     }[state.adminView]();
@@ -1280,6 +1407,7 @@ function adminDashboardTemplate() {
   const expiring = state.companies.filter((company) => company.renewalDate <= "2026-06-05");
   const usedAssistances = state.companies.reduce((sum, company) => sum + Number(company.usedAssistances), 0);
   const activeUsers = state.users.filter((user) => user.active).length;
+  const interestedVisits = state.salesVisits.filter((visit) => ["Interesado", "Contrató"].includes(visit.status)).length;
 
   return `
     <div class="section-head">
@@ -1297,6 +1425,7 @@ function adminDashboardTemplate() {
       ${statCard("Planes próximos a vencer", expiring.length, "Ver vencimientos cercanos", "companies-expiring")}
       ${statCard("Asistencias usadas este mes", usedAssistances, "Ver consumo por empresa", "companies-assistances")}
       ${statCard("Usuarios activos", activeUsers, "Clientes, técnicos y ventas", "users-active")}
+      ${statCard("Oportunidades comerciales", interestedVisits, "Interesados o contratados", "sales-opportunities")}
     </div>
     <section class="alert-strip ${urgentTickets.length ? "is-hot" : ""}">
       <div>
@@ -1527,6 +1656,78 @@ function adminEquipmentTemplate() {
   `;
 }
 
+function adminSalesTemplate() {
+  const user = currentUser();
+  let visits = salesVisitsForCurrentUser();
+  if (state.adminFocus?.type === "sales-opportunities") {
+    visits = visits.filter((visit) => ["Interesado", "Contrató"].includes(visit.status));
+  }
+  const zones = state.salesZones.filter((zone) => canManageSales(user) || visits.some((visit) => visit.zoneId === zone.id));
+  const statusCounts = visitStatuses.map((status) => ({
+    status,
+    count: visits.filter((visit) => visit.status === status).length,
+  }));
+
+  return `
+    <div class="section-head">
+      <div>
+        <h1>${user?.role === "Vendedor" ? "Mis visitas comerciales" : "Ventas y recorridos"}</h1>
+        <p>Organizá zonas, prospectos y seguimiento comercial sin perder el pulso de la calle.</p>
+      </div>
+      ${canManageSales(user) ? `<button class="button" data-open-sales-import>Cargar zona o listado</button>` : ""}
+    </div>
+    ${adminFocusNotice()}
+    <div class="grid stats-grid">
+      ${statusCounts.map((item) => statCard(item.status, item.count, "Prospectos en este estado")).join("")}
+    </div>
+    <div class="sales-board">
+      ${zones.map((zone) => {
+        const zoneVisits = visits.filter((visit) => visit.zoneId === zone.id);
+        return `
+          <section class="zone-panel">
+            <div class="zone-head">
+              <div>
+                <h2>${zone.name}</h2>
+                <p>${zone.description || "Recorrido comercial asignado."}</p>
+              </div>
+              <span class="badge">${zoneVisits.length} visitas</span>
+            </div>
+            <div class="visit-list">
+              ${zoneVisits.length ? zoneVisits.map(visitCard).join("") : `<div class="empty-state">No hay visitas cargadas en esta zona.</div>`}
+            </div>
+          </section>
+        `;
+      }).join("")}
+    </div>
+  `;
+}
+
+function visitCard(visit) {
+  return `
+    <article class="visit-card">
+      <div class="item-head">
+        <div>
+          <h3>${visit.businessName}</h3>
+          <p>${visit.address}</p>
+        </div>
+        ${badge(visit.status)}
+      </div>
+      <div class="visit-meta">
+        <span>${visit.contactName || "Sin contacto"}</span>
+        <span>${visit.phone || "Sin teléfono"}</span>
+        <span>${userDisplayName(visit.assignedSellerId)}</span>
+      </div>
+      <p class="item-subtitle">${visit.notes || "Sin observaciones."}</p>
+      <div class="visit-actions">
+        <select data-visit-status="${visit.id}">
+          ${visitStatuses.map((status) => `<option ${visit.status === status ? "selected" : ""}>${status}</option>`).join("")}
+        </select>
+        ${visit.phone ? `<a class="soft-button" href="${whatsappUrl(whatsappVisitMessage(visit))}" target="_blank" rel="noreferrer">WhatsApp</a>` : ""}
+      </div>
+    </article>
+  `;
+}
+
 function adminUsersTemplate() {
   const users = state.adminFocus?.type === "users-active" ? state.users.filter((user) => user.active) : state.users;
   return `
@@ -1564,17 +1765,18 @@ function adminUsersTemplate() {
 }
 
 function adminPlansTemplate() {
+  const user = currentUser();
   return `
     <div class="section-head">
       <div>
         <h1>Planes</h1>
         <p>Planes base y propuestas comerciales para cerrar altas en una visita.</p>
       </div>
-      <button class="button" data-open-plan>Crear plan</button>
+      ${canManageSales(user) ? `<button class="button" data-open-plan>Crear plan</button>` : ""}
     </div>
     <div class="grid cards-grid">
       ${state.plans.map((plan) => `
-        <article class="card">
+        <article class="card plan-card">
           <div class="item-head">
             <div>
               <h2 class="item-title">${plan.name}</h2>
@@ -1590,7 +1792,8 @@ function adminPlansTemplate() {
             ${plan.features.map((feature) => `<li>${feature}</li>`).join("")}
           </ul>
           <div class="toolbar" style="margin: 14px 0 0;">
-            <button class="soft-button" data-open-plan="${plan.id}">Editar plan</button>
+            ${canManageSales(user) ? `<button class="soft-button" data-open-plan="${plan.id}">Editar plan</button>` : ""}
+            <a class="button" href="${whatsappUrl(whatsappPlanMessage(plan))}" target="_blank" rel="noreferrer">Compartir</a>
           </div>
         </article>
       `).join("")}
@@ -1651,6 +1854,12 @@ function bindCurrentViewEvents() {
   });
   document.querySelectorAll("[data-open-plan]").forEach((button) => {
     button.addEventListener("click", () => openPlanModal(button.dataset.openPlan || ""));
+  });
+  document.querySelectorAll("[data-open-sales-import]").forEach((button) => {
+    button.addEventListener("click", openSalesImportModal);
+  });
+  document.querySelectorAll("[data-visit-status]").forEach((select) => {
+    select.addEventListener("change", () => updateVisitStatus(select.dataset.visitStatus, select.value));
   });
   document.querySelectorAll("[data-admin-shortcut]").forEach((button) => {
     button.addEventListener("click", () => applyAdminShortcut(button.dataset.adminShortcut));
@@ -1716,6 +1925,10 @@ function applyAdminShortcut(shortcut) {
     "users-active": {
       view: "admin-users",
       focus: { type: "users-active", label: "usuarios activos" },
+    },
+    "sales-opportunities": {
+      view: "admin-sales",
+      focus: { type: "sales-opportunities", label: "oportunidades comerciales" },
     },
   };
   const next = shortcuts[shortcut];
@@ -2088,6 +2301,104 @@ function openPlanModal(id) {
     </form>
   `);
   $("#planForm").addEventListener("submit", savePlan);
+}
+
+function openSalesImportModal() {
+  openModal(`
+    <form class="modal" id="salesImportForm">
+      <div class="modal-head">
+        <div>
+          <h2>Cargar zona o listado</h2>
+          <p>Pegá una lista simple. Una visita por línea, separando datos con coma o punto y coma.</p>
+        </div>
+        <button class="icon-button" type="button" data-close-modal>×</button>
+      </div>
+      <div class="form-grid">
+        <div class="field">
+          <label>Zona</label>
+          <input name="zoneName" required placeholder="Ej: Zona Centro" />
+        </div>
+        <div class="field">
+          <label>Asignar a vendedor</label>
+          <select name="assignedSellerId" required>${sellerOptions(currentUser()?.role === "Asistente comercial" ? currentUser().id : "")}</select>
+        </div>
+        <div class="field wide">
+          <label>Descripción de zona</label>
+          <input name="description" placeholder="Ej: comercios sobre Av. Illia y alrededores" />
+        </div>
+        <div class="field wide">
+          <label>Listado</label>
+          <textarea name="rows" required placeholder="Nombre, dirección, contacto, teléfono, nota&#10;Farmacia Avenida, Av. Illia 420, María, 2664102201, preguntar por mantenimiento&#10;Kiosco Norte, San Martín 1220, Diego, 2664551122, tiene 2 PCs"></textarea>
+        </div>
+      </div>
+      <div class="whatsapp-card" style="margin-top: 12px;">
+        <strong>Formato recomendado</strong>
+        <span>Nombre, dirección, contacto, teléfono, observación. Si falta algún dato, igual se carga y se puede completar después.</span>
+      </div>
+      <div class="toolbar" style="margin: 14px 0 0;">
+        <button class="button" type="submit">Crear visitas</button>
+        <button class="ghost-button" type="button" data-close-modal>Cancelar</button>
+      </div>
+    </form>
+  `);
+  $("#salesImportForm").addEventListener("submit", saveSalesImport);
+}
+
+function parseSalesRows(text) {
+  return text
+    .split(/\r?\n/)
+    .map((line) => line.trim())
+    .filter(Boolean)
+    .map((line) => {
+      const parts = line.split(/[;,]/).map((part) => part.trim());
+      return {
+        businessName: parts[0] || "Comercio sin nombre",
+        address: parts[1] || "Dirección pendiente",
+        contactName: parts[2] || "",
+        phone: parts[3] || "",
+        notes: parts.slice(4).join(", "),
+      };
+    });
+}
+
+function saveSalesImport(event) {
+  event.preventDefault();
+  const form = Object.fromEntries(new FormData(event.target).entries());
+  const existingZone = state.salesZones.find((zone) => zone.name.toLowerCase() === form.zoneName.toLowerCase());
+  const zone = existingZone || {
+    id: uid("z"),
+    name: form.zoneName,
+    description: form.description,
+    assignedSellerId: form.assignedSellerId,
+    createdAt: "2026-05-18",
+  };
+  if (!existingZone) state.salesZones.push(zone);
+  else Object.assign(zone, {
+    description: form.description || zone.description,
+    assignedSellerId: form.assignedSellerId,
+  });
+  const visits = parseSalesRows(form.rows).map((visit) => ({
+    id: uid("v"),
+    zoneId: zone.id,
+    assignedSellerId: form.assignedSellerId,
+    ...visit,
+    status: "Pendiente",
+    lastUpdate: "2026-05-18",
+  }));
+  state.salesVisits.push(...visits);
+  saveState();
+  $("#modal").close();
+  state.adminView = "admin-sales";
+  render();
+}
+
+function updateVisitStatus(id, status) {
+  const visit = state.salesVisits.find((item) => item.id === id);
+  if (!visit) return;
+  visit.status = status;
+  visit.lastUpdate = "2026-05-18";
+  saveState();
+  render();
 }
 
 function savePlan(event) {
