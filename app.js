@@ -879,6 +879,38 @@ function whatsappVisitMessage(visit) {
   ].join("\n");
 }
 
+function normalizedPhone(phone) {
+  const digits = String(phone || "").replace(/\D/g, "");
+  if (!digits) return "";
+  if (digits.startsWith("54")) return digits;
+  return `54${digits.replace(/^0+/, "")}`;
+}
+
+function prospectWhatsappUrl(visit) {
+  const phone = normalizedPhone(visit.phone);
+  if (!phone) return "";
+  return `https://wa.me/${phone}?text=${encodeURIComponent(whatsappVisitMessage(visit))}`;
+}
+
+function mapAddress(visit) {
+  return [visit.address, "San Luis", "Argentina"].filter(Boolean).join(", ");
+}
+
+function mapsDirectionsUrl(visit) {
+  return `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(mapAddress(visit))}&travelmode=driving`;
+}
+
+function mapsRouteUrl(visits) {
+  const routeVisits = visits
+    .filter((visit) => visit.address && !["ContratÃ³", "No visitado"].includes(visit.status))
+    .slice(0, 8);
+  if (!routeVisits.length) return "";
+  if (routeVisits.length === 1) return mapsDirectionsUrl(routeVisits[0]);
+  const destination = mapAddress(routeVisits[routeVisits.length - 1]);
+  const waypoints = routeVisits.slice(0, -1).map(mapAddress).join("|");
+  return `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(destination)}&waypoints=${encodeURIComponent(waypoints)}&travelmode=driving`;
+}
+
 function adminNotifications() {
   return [
     ...(state.planRequests || []).filter((request) => request.status === "Pendiente").map((request) => ({
@@ -2122,6 +2154,7 @@ function adminSalesTemplate() {
     <div class="sales-board">
       ${zones.map((zone) => {
         const zoneVisits = visits.filter((visit) => visit.zoneId === zone.id);
+        const routeUrl = mapsRouteUrl(zoneVisits);
         return `
           <section class="zone-panel">
             <div class="zone-head">
@@ -2129,9 +2162,12 @@ function adminSalesTemplate() {
                 <h2>${zone.name}</h2>
                 <p>${zone.description || "Recorrido comercial asignado."}</p>
               </div>
-              <div>
-                <span class="badge">${zoneVisits.length} visitas</span>
-                <span class="badge neutral">${sellerNameOrOpen(zone.assignedSellerId)}</span>
+              <div class="zone-actions">
+                <div class="zone-badges">
+                  <span class="badge">${zoneVisits.length} visitas</span>
+                  <span class="badge neutral">${sellerNameOrOpen(zone.assignedSellerId)}</span>
+                </div>
+                ${routeUrl ? `<a class="route-button" href="${routeUrl}" target="_blank" rel="noreferrer">Ruta sugerida</a>` : ""}
               </div>
             </div>
             <div class="visit-list">
@@ -2145,27 +2181,29 @@ function adminSalesTemplate() {
 }
 
 function visitCard(visit) {
+  const whatsappLink = prospectWhatsappUrl(visit);
   return `
     <article class="visit-card status-card ${statusClass(visit.status)}">
-      <div class="item-head">
-        <div>
+      <div class="visit-card-head">
+        <div class="visit-title-block">
           <h3>${visit.businessName}</h3>
-          <p>${visit.address}</p>
+          <p><span>⌖</span>${visit.address || "Sin direccion cargada"}</p>
         </div>
         ${badge(visit.status)}
       </div>
       <div class="visit-meta">
-        <span>${visit.contactName || "Sin contacto"}</span>
-        <span>${visit.phone || "Sin teléfono"}</span>
-        <span>${sellerNameOrOpen(visit.assignedSellerId)}</span>
-        ${visit.updatedBySellerId ? `<span>Actualizó: ${userDisplayName(visit.updatedBySellerId)}</span>` : ""}
+        <span><small>Contacto</small>${visit.contactName || "Sin contacto"}</span>
+        <span><small>Telefono</small>${visit.phone || "Sin telefono"}</span>
+        <span><small>Asignacion</small>${sellerNameOrOpen(visit.assignedSellerId)}</span>
+        ${visit.updatedBySellerId ? `<span><small>Seguimiento</small>${userDisplayName(visit.updatedBySellerId)}</span>` : ""}
       </div>
-      <p class="item-subtitle">${visit.notes || "Sin observaciones."}</p>
+      <p class="visit-note">${visit.notes || "Sin observaciones."}</p>
       <div class="visit-actions">
         <select data-visit-status="${visit.id}">
           ${visitStatuses.map((status) => `<option ${visit.status === status ? "selected" : ""}>${status}</option>`).join("")}
         </select>
-        ${visit.phone ? `<a class="soft-button" href="${whatsappUrl(whatsappVisitMessage(visit))}" target="_blank" rel="noreferrer">WhatsApp</a>` : ""}
+        <a class="visit-action map" href="${mapsDirectionsUrl(visit)}" target="_blank" rel="noreferrer">Ir</a>
+        ${whatsappLink ? `<a class="visit-action whatsapp" href="${whatsappLink}" target="_blank" rel="noreferrer">WhatsApp</a>` : ""}
       </div>
     </article>
   `;
