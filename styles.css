@@ -1319,7 +1319,7 @@ button {
 
 .visit-actions {
   display: grid;
-  grid-template-columns: minmax(130px, 1fr) repeat(2, minmax(78px, auto));
+  grid-template-columns: minmax(130px, 1fr) repeat(3, minmax(78px, auto));
   align-items: stretch;
   gap: 9px;
   margin-top: auto;
@@ -1356,6 +1356,12 @@ button {
 .visit-action.whatsapp {
   background: #dcfce7;
   color: #166534;
+}
+
+.visit-action.danger {
+  border: 0;
+  background: #fee2e2;
+  color: #b91c1c;
 }
 
 .table-wrap {

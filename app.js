@@ -2204,6 +2204,7 @@ function visitCard(visit) {
         </select>
         <a class="visit-action map" href="${mapsDirectionsUrl(visit)}" target="_blank" rel="noreferrer">Ir</a>
         ${whatsappLink ? `<a class="visit-action whatsapp" href="${whatsappLink}" target="_blank" rel="noreferrer">WhatsApp</a>` : ""}
+        ${canManageSales() ? `<button class="visit-action danger" type="button" data-delete-visit="${visit.id}">Eliminar</button>` : ""}
       </div>
     </article>
   `;
@@ -2389,6 +2390,9 @@ function bindCurrentViewEvents() {
   });
   document.querySelectorAll("[data-visit-status]").forEach((select) => {
     select.addEventListener("change", () => updateVisitStatus(select.dataset.visitStatus, select.value));
+  });
+  document.querySelectorAll("[data-delete-visit]").forEach((button) => {
+    button.addEventListener("click", () => deleteSalesVisit(button.dataset.deleteVisit));
   });
   document.querySelectorAll("[data-admin-shortcut]").forEach((button) => {
     button.addEventListener("click", () => applyAdminShortcut(button.dataset.adminShortcut));
@@ -3020,6 +3024,16 @@ function updateVisitStatus(id, status) {
     visit.updatedBySellerId = currentUser().id;
   }
   visit.lastUpdate = "2026-05-18";
+  saveState();
+  render();
+}
+
+function deleteSalesVisit(id) {
+  const visit = state.salesVisits.find((item) => item.id === id);
+  if (!visit) return;
+  const ok = confirm(`Vas a eliminar "${visit.businessName}" del listado comercial. Esta accion no borra ninguna empresa cliente real.`);
+  if (!ok) return;
+  state.salesVisits = state.salesVisits.filter((item) => item.id !== id);
   saveState();
   render();
 }
