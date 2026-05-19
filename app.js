@@ -1067,14 +1067,14 @@ function htmlList(items) {
 
 function coverageBlock(title, content, open = false) {
   return `
-    <article class="coverage-block ${open ? "featured" : ""}">
-      <div class="coverage-title">
+    <section class="plan-coverage-card ${open ? "featured" : ""}">
+      <header class="plan-coverage-title">
         <strong>${title}</strong>
-      </div>
-      <div class="coverage-content">
+      </header>
+      <div class="plan-coverage-body">
         ${content}
       </div>
-    </article>
+    </section>
   `;
 }
 
@@ -2959,6 +2959,9 @@ function openPlanCoverageModal(planId) {
       </div>
     </div>
   `);
+  document.querySelectorAll("#modal details.coverage-block").forEach((block) => {
+    block.open = true;
+  });
 }
 
 function openPlanShareModal(planId) {
