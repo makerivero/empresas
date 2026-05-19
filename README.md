@@ -4,7 +4,7 @@ App web responsive para clientes empresariales de soporte técnico y mantenimien
 
 ## Estado
 
-Esta versión está lista para subir a GitHub y desplegar en Vercel. La app arranca limpia con un usuario administrador inicial y guarda la información en el navegador hasta conectar Firebase. Los archivos de Firebase ya están preparados para conectar Authentication, Firestore y Storage cuando estén las credenciales.
+Esta versión está lista para subir a GitHub y desplegar en Vercel. La app arranca limpia con un usuario administrador inicial y guarda la información operativa en Firestore cuando las variables de Firebase están configuradas. Si Firebase no está disponible, conserva una copia local en el navegador.
 
 ## Ejecutar local
 
@@ -35,6 +35,8 @@ npm run dev
 firebase deploy --only firestore
 ```
 
+La app usa el documento `appState/main` como persistencia central inicial. Esto permite empezar a operar rápido y luego migrar a colecciones separadas cuando el flujo esté validado.
+
 ## Logo
 
 El logo real está en `public/assets/logo.png` para que Vercel lo publique en producción. También queda una copia en `assets/logo.png` como respaldo local.
@@ -49,6 +51,7 @@ El logo real está en `public/assets/logo.png` para que Vercel lo publique en pr
 - En el portal cliente, el selector de equipos muestra solo equipos asignados a la empresa.
 - Se agregó `Otro / consulta general` para tickets que no correspondan a un equipo puntual.
 - En empresas, el admin puede cargar el email y clave provisoria del login cliente.
+- El administrador puede eliminar empresas y se eliminan sus datos asociados dentro de la app.
 - En usuarios, se pueden cargar técnicos, vendedores y asistentes comerciales.
 - En planes, el equipo comercial puede crear o editar propuestas.
 - En ventas, el administrador o asistente comercial puede crear zonas abiertas, dar prioridad opcional a un vendedor y cargar prospectos pegando listados.

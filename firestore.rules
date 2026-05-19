@@ -22,6 +22,10 @@ service cloud.firestore {
       return signedIn() && userDoc().data.companyId == companyId;
     }
 
+    match /appState/{docId} {
+      allow read, write: if true;
+    }
+
     match /users/{userId} {
       allow read: if signedIn() && (request.auth.uid == userId || isTecnoStaff());
       allow create, update: if isAdmin();

@@ -325,6 +325,19 @@ button {
   padding: 0 14px;
 }
 
+.danger-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 42px;
+  border: 0;
+  border-radius: var(--radius);
+  background: #fee2e2;
+  color: #b91c1c;
+  font-weight: 800;
+  padding: 0 14px;
+}
+
 .icon-button {
   display: inline-grid;
   width: 42px;

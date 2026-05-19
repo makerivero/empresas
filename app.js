@@ -1,4 +1,24 @@
+import { doc, getDoc, serverTimestamp, setDoc } from "firebase/firestore";
+import { db, firebaseReady } from "./firebase-client.js";
+
 const STORAGE_KEY = "tecnostore_empresas_v2";
+const FIRESTORE_STATE_REF = ["appState", "main"];
+const PERSISTED_KEYS = [
+  "plans",
+  "salesZones",
+  "salesVisits",
+  "users",
+  "companies",
+  "equipment",
+  "tickets",
+  "ticketUpdates",
+  "repairs",
+  "serviceLogs",
+  "planRequests",
+];
+
+let isBootstrapping = true;
+let saveTimer = null;
 
 const ticketStatuses = [
   "Recibido",
@@ -554,12 +574,78 @@ function loadState() {
 
 function saveState() {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+  scheduleCloudSave();
 }
 
 function resetAppData() {
   state = cleanInitialState();
   saveState();
   render();
+}
+
+function persistentState() {
+  return PERSISTED_KEYS.reduce((data, key) => {
+    data[key] = state[key] ?? cleanInitialState()[key];
+    return data;
+  }, {});
+}
+
+function applyPersistentState(data) {
+  const base = cleanInitialState();
+  PERSISTED_KEYS.forEach((key) => {
+    if (Object.prototype.hasOwnProperty.call(data || {}, key)) {
+      base[key] = data[key];
+    }
+  });
+  state = {
+    ...base,
+    loggedIn: state?.loggedIn || false,
+    role: state?.role || base.role,
+    currentUserId: state?.currentUserId || "",
+    currentCompanyId: state?.currentCompanyId || base.companies[0]?.id || "",
+    selectedTicketId: state?.selectedTicketId || "",
+    clientView: state?.clientView || "dashboard",
+    adminView: state?.adminView || "admin-dashboard",
+    adminFocus: state?.adminFocus || null,
+    filters: {
+      ...base.filters,
+      ...(state?.filters || {}),
+    },
+  };
+}
+
+async function loadCloudState() {
+  if (!firebaseReady || !db) return;
+  try {
+    const ref = doc(db, ...FIRESTORE_STATE_REF);
+    const snapshot = await getDoc(ref);
+    if (snapshot.exists()) {
+      applyPersistentState(snapshot.data().state || {});
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+      return;
+    }
+    await setDoc(ref, {
+      state: persistentState(),
+      updatedAt: serverTimestamp(),
+    });
+  } catch (error) {
+    console.warn("No se pudo cargar Firestore. La app seguirá en modo local.", error);
+  }
+}
+
+function scheduleCloudSave() {
+  if (isBootstrapping || !firebaseReady || !db) return;
+  clearTimeout(saveTimer);
+  saveTimer = setTimeout(async () => {
+    try {
+      await setDoc(doc(db, ...FIRESTORE_STATE_REF), {
+        state: persistentState(),
+        updatedAt: serverTimestamp(),
+      }, { merge: true });
+    } catch (error) {
+      console.warn("No se pudo guardar en Firestore. Se conserva copia local.", error);
+    }
+  }, 350);
 }
 
 function $(selector) {
@@ -1614,6 +1700,7 @@ function adminCompaniesTemplate() {
               <button class="soft-button" data-open-company="${company.id}">Editar</button>
               <button class="ghost-button" data-open-user="${loginUser?.id || ""}" data-user-company="${company.id}">Login</button>
               <button class="ghost-button" data-select-company="${company.id}">Ver como cliente</button>
+              <button class="danger-button" data-delete-company="${company.id}">Eliminar</button>
             </div>
           </article>
         `;
@@ -2072,6 +2159,9 @@ function bindCurrentViewEvents() {
       render();
     });
   });
+  document.querySelectorAll("[data-delete-company]").forEach((button) => {
+    button.addEventListener("click", () => deleteCompany(button.dataset.deleteCompany));
+  });
   document.querySelectorAll("[data-filter]").forEach((filter) => {
     filter.addEventListener("change", () => {
       state.filters[filter.dataset.filter] = filter.value;
@@ -2447,6 +2537,28 @@ function saveCompany(event) {
   state.currentCompanyId = payload.id;
   saveState();
   $("#modal").close();
+  render();
+}
+
+function deleteCompany(companyId) {
+  const company = state.companies.find((item) => item.id === companyId);
+  if (!company) return;
+  const ok = confirm(`Vas a eliminar ${company.name} y sus equipos, tickets, reparaciones, historial y login cliente. Esta acción no se puede deshacer.`);
+  if (!ok) return;
+  const ticketIds = state.tickets.filter((ticket) => ticket.companyId === companyId).map((ticket) => ticket.id);
+  const repairIds = state.repairs.filter((repair) => repair.companyId === companyId).map((repair) => repair.id);
+  state.companies = state.companies.filter((item) => item.id !== companyId);
+  state.users = state.users.filter((user) => user.companyId !== companyId);
+  state.equipment = state.equipment.filter((item) => item.companyId !== companyId);
+  state.tickets = state.tickets.filter((ticket) => ticket.companyId !== companyId);
+  state.ticketUpdates = state.ticketUpdates.filter((update) => !ticketIds.includes(update.ticketId));
+  state.repairs = state.repairs.filter((repair) => repair.companyId !== companyId);
+  state.serviceLogs = state.serviceLogs.filter((log) => log.companyId !== companyId && !ticketIds.includes(log.ticketId) && !repairIds.includes(log.repairId));
+  state.planRequests = (state.planRequests || []).filter((request) => request.companyId !== companyId);
+  if (state.currentCompanyId === companyId) {
+    state.currentCompanyId = state.companies[0]?.id || "";
+  }
+  saveState();
   render();
 }
 
@@ -2835,7 +2947,9 @@ function saveRepair(event) {
   render();
 }
 
-function init() {
+async function init() {
+  await loadCloudState();
+  isBootstrapping = false;
   if (!state.loggedIn) {
     $("#app").innerHTML = loginTemplate();
     bindLoginEvents();
