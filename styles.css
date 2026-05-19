@@ -12,8 +12,33 @@
   --success: #16a34a;
   --warning: #f59e0b;
   --danger: #dc2626;
+  --client-accent: #008cff;
+  --client-accent-2: #006bd6;
+  --client-soft: #e7f2ff;
+  --client-glow: rgba(0, 140, 255, 0.22);
   --shadow: 0 14px 38px rgba(6, 26, 58, 0.08);
   --radius: 8px;
+}
+
+body.plan-start {
+  --client-accent: #00a3ff;
+  --client-accent-2: #075aaf;
+  --client-soft: #e7f2ff;
+  --client-glow: rgba(0, 140, 255, 0.26);
+}
+
+body.plan-pyme {
+  --client-accent: #34d399;
+  --client-accent-2: #047857;
+  --client-soft: #ecfdf5;
+  --client-glow: rgba(16, 185, 129, 0.24);
+}
+
+body.plan-full {
+  --client-accent: #f59e0b;
+  --client-accent-2: #7c3aed;
+  --client-soft: #fff7ed;
+  --client-glow: rgba(245, 158, 11, 0.26);
 }
 
 * {
@@ -278,6 +303,16 @@ button {
   background: #005fc0;
 }
 
+.client .button {
+  background: linear-gradient(135deg, var(--client-accent-2), var(--client-accent));
+  box-shadow: 0 12px 28px var(--client-glow);
+}
+
+.client .soft-button {
+  background: var(--client-soft);
+  color: var(--navy);
+}
+
 .ghost-button {
   background: transparent;
   color: var(--blue);
@@ -428,7 +463,7 @@ button {
   border: 1px solid rgba(0, 107, 214, 0.14);
   border-radius: var(--radius);
   background:
-    linear-gradient(135deg, rgba(255, 255, 255, 0.98), rgba(232, 244, 255, 0.94)),
+    linear-gradient(135deg, rgba(255, 255, 255, 0.98), var(--client-soft)),
     var(--surface);
   box-shadow: 0 12px 30px rgba(6, 26, 58, 0.06);
   margin: 8px 0 20px;
@@ -572,7 +607,7 @@ button {
   position: absolute;
   inset: 0 0 auto;
   height: 4px;
-  background: linear-gradient(90deg, var(--navy), var(--blue), var(--electric));
+  background: linear-gradient(90deg, var(--navy), var(--client-accent-2), var(--client-accent));
   opacity: 0.85;
 }
 
@@ -616,7 +651,7 @@ button {
   position: absolute;
   inset: 0 0 auto;
   height: 3px;
-  background: linear-gradient(90deg, var(--blue), var(--electric));
+  background: linear-gradient(90deg, var(--client-accent-2), var(--client-accent));
   opacity: 0.85;
 }
 
@@ -1255,7 +1290,10 @@ tr:last-child td {
   display: grid;
   gap: 16px;
   border-radius: var(--radius);
-  background: linear-gradient(135deg, var(--navy), #0b4e98);
+  background:
+    radial-gradient(circle at 88% 12%, rgba(255, 255, 255, 0.24), transparent 26%),
+    linear-gradient(135deg, var(--navy), var(--client-accent-2), var(--client-accent));
+  box-shadow: 0 22px 52px var(--client-glow);
   color: white;
   padding: 22px;
 }
@@ -1350,6 +1388,10 @@ tr:last-child td {
 
 .mobile-nav button.active {
   color: var(--blue);
+}
+
+.client .mobile-nav button.active {
+  color: var(--client-accent-2);
 }
 
 .empty-state {
@@ -1489,6 +1531,12 @@ body.client .client-only {
   .nav button:hover {
     background: var(--soft-blue);
     color: var(--blue);
+  }
+
+  .client .nav button.active,
+  .client .nav button:hover {
+    background: var(--client-soft);
+    color: var(--client-accent-2);
   }
 
   .sidebar-footer {

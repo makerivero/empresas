@@ -4,7 +4,7 @@ App web responsive para clientes empresariales de soporte técnico y mantenimien
 
 ## Estado
 
-Esta versión está lista para subir a GitHub y desplegar en Vercel. La app conserva datos demo en el navegador para probar flujos sin depender de Firebase. Los archivos de Firebase ya están preparados para conectar Authentication, Firestore y Storage cuando estén las credenciales.
+Esta versión está lista para subir a GitHub y desplegar en Vercel. La app arranca limpia con un usuario administrador inicial y guarda la información en el navegador hasta conectar Firebase. Los archivos de Firebase ya están preparados para conectar Authentication, Firestore y Storage cuando estén las credenciales.
 
 ## Ejecutar local
 
@@ -39,13 +39,10 @@ firebase deploy --only firestore
 
 El logo real está en `public/assets/logo.png` para que Vercel lo publique en producción. También queda una copia en `assets/logo.png` como respaldo local.
 
-## Usuarios demo
+## Usuario inicial
 
-- Cliente: `cliente@empresa.com`
 - Admin: `admin@tecnostore.com`
-- Comercial: `comercial@tecnostore.com`
-- Ventas: `ventas@tecnostore.com`
-- Clave demo: `demo1234`
+- Contraseña: `Tecno2026!`
 
 ## Notas de implementación
 
@@ -54,5 +51,6 @@ El logo real está en `public/assets/logo.png` para que Vercel lo publique en pr
 - En empresas, el admin puede cargar el email y clave provisoria del login cliente.
 - En usuarios, se pueden cargar técnicos, vendedores y asistentes comerciales.
 - En planes, el equipo comercial puede crear o editar propuestas.
-- En ventas, el administrador o asistente comercial puede cargar zonas y prospectos pegando listados.
-- Los vendedores ven sus visitas asignadas, cambian estado y pueden compartir planes por WhatsApp.
+- En ventas, el administrador o asistente comercial puede crear zonas abiertas, dar prioridad opcional a un vendedor y cargar prospectos pegando listados.
+- Los vendedores ven las zonas disponibles, cambian estado de visitas, pueden crear clientes y compartir planes por WhatsApp.
+- El panel de ventas incluye filtros por vendedor, zona y estado, más un resumen por vendedor.

@@ -1,4 +1,4 @@
-const STORAGE_KEY = "tecnostore_empresas_demo_v1";
+const STORAGE_KEY = "tecnostore_empresas_v2";
 
 const ticketStatuses = [
   "Recibido",
@@ -496,15 +496,58 @@ const defaultState = {
   ],
 };
 
+function cleanInitialState() {
+  return {
+    loggedIn: false,
+    role: "admin",
+    currentUserId: "",
+    currentCompanyId: "",
+    selectedTicketId: "",
+    clientView: "dashboard",
+    adminView: "admin-dashboard",
+    adminFocus: null,
+    filters: {
+      ticketStatus: "Todos",
+      ticketUrgency: "Todas",
+      ticketCompany: "Todas",
+      salesSeller: "Todos",
+      salesZone: "Todas",
+      salesStatus: "Todos",
+    },
+    plans: structuredClone(planCatalog),
+    salesZones: [],
+    salesVisits: [],
+    users: [
+      {
+        id: "u-admin-main",
+        name: "Gustavo Ariel Rivero",
+        email: "admin@tecnostore.com",
+        password: "Tecno2026!",
+        role: "Administrador",
+        companyId: "",
+        phone: "266 510 5694",
+        active: true,
+        createdAt: "2026-05-19",
+      },
+    ],
+    companies: [],
+    equipment: [],
+    tickets: [],
+    ticketUpdates: [],
+    repairs: [],
+    serviceLogs: [],
+  };
+}
+
 let state = loadState();
 
 function loadState() {
   const saved = localStorage.getItem(STORAGE_KEY);
-  if (!saved) return structuredClone(defaultState);
+  if (!saved) return cleanInitialState();
   try {
-    return { ...structuredClone(defaultState), ...JSON.parse(saved) };
+    return { ...cleanInitialState(), ...JSON.parse(saved) };
   } catch {
-    return structuredClone(defaultState);
+    return cleanInitialState();
   }
 }
 
@@ -513,7 +556,7 @@ function saveState() {
 }
 
 function resetDemo() {
-  state = structuredClone(defaultState);
+  state = cleanInitialState();
   saveState();
   render();
 }
@@ -533,11 +576,24 @@ function uid(prefix) {
 }
 
 function getCompany(id = state.currentCompanyId) {
-  return state.companies.find((company) => company.id === id) || state.companies[0];
+  return state.companies.find((company) => company.id === id) || state.companies[0] || null;
+}
+
+function companyName(id) {
+  return getCompany(id)?.name || "Empresa sin asignar";
 }
 
 function getPlan(id) {
   return state.plans.find((plan) => plan.id === id) || state.plans[1] || planCatalog[1];
+}
+
+function planThemeClass(planId) {
+  return `plan-${planId || "start"}`;
+}
+
+function currentPlanThemeClass() {
+  if (state.role !== "client") return "plan-start";
+  return planThemeClass(getCompany()?.planId || "start");
 }
 
 function getEquipment(id) {
@@ -596,6 +652,10 @@ function canManageSales(user = currentUser()) {
   return user && ["Administrador", "Asistente comercial"].includes(user.role);
 }
 
+function canCreateCustomer(user = currentUser()) {
+  return user && ["Administrador", "Asistente comercial", "Vendedor"].includes(user.role);
+}
+
 function sellerOptions(selected = "") {
   const sellers = state.users.filter((user) => user.active && ["Vendedor", "Asistente comercial"].includes(user.role));
   return sellers.map((user) => `<option value="${user.id}" ${selected === user.id ? "selected" : ""}>${user.name} · ${user.role}</option>`).join("");
@@ -606,9 +666,11 @@ function zoneName(zoneId) {
 }
 
 function salesVisitsForCurrentUser() {
-  const user = currentUser();
-  if (!user || canManageSales(user)) return state.salesVisits;
-  return state.salesVisits.filter((visit) => visit.assignedSellerId === user.id);
+  return state.salesVisits;
+}
+
+function sellerNameOrOpen(id) {
+  return id ? userDisplayName(id) : "Abierta para vendedores";
 }
 
 function companyEquipment(companyId = state.currentCompanyId) {
@@ -752,10 +814,14 @@ function setView(view) {
   window.scrollTo({ top: 0, behavior: "smooth" });
 }
 
-function login(email = "") {
+function login(email = "", password = "") {
   const user = state.users.find((item) => item.email.toLowerCase() === email.toLowerCase() && item.active);
   if (email && !user) {
     alert("No encontramos un usuario activo con ese email. Revisá el dato o pedí ayuda a TecnoStore.");
+    return;
+  }
+  if (!user || user.password !== password) {
+    alert("Email o contraseña incorrectos.");
     return;
   }
   state.loggedIn = true;
@@ -782,7 +848,7 @@ function logout() {
 }
 
 function render() {
-  document.body.className = state.role;
+  document.body.className = `${state.role} ${currentPlanThemeClass()}`;
   $("#app").innerHTML = shellTemplate();
   bindGlobalEvents();
   bindCurrentViewEvents();
@@ -793,13 +859,8 @@ function loginTemplate() {
     <main class="login-shell">
       <section class="login-visual">
         <div class="login-copy">
-          <h1>Portal TecnoStore Empresas</h1>
-          <p>Soporte técnico y mantenimiento IT para empresas y PYMES. Mantenemos la tecnología de tu negocio funcionando.</p>
-          <div class="login-proof">
-            <div class="proof-item"><strong>24</strong><span>tickets gestionados este mes</span></div>
-            <div class="proof-item"><strong>98%</strong><span>servicios resueltos sin fricción</span></div>
-            <div class="proof-item"><strong>12</strong><span>empresas activas en soporte</span></div>
-          </div>
+          <h1>Portal TecnoStore</h1>
+          <p>Soporte IT organizado para que tu negocio no se frene cuando la tecnología decide hacerse la difícil.</p>
         </div>
       </section>
       <section class="login-panel">
@@ -815,11 +876,11 @@ function loginTemplate() {
           <p>Portal de soporte técnico para empresas y PYMES.</p>
           <div class="field">
             <label for="email">Email</label>
-            <input id="email" type="email" value="cliente@empresa.com" autocomplete="email" />
+            <input id="email" type="email" value="admin@tecnostore.com" autocomplete="email" />
           </div>
           <div class="field">
             <label for="password">Contraseña</label>
-            <input id="password" type="password" value="demo1234" autocomplete="current-password" />
+            <input id="password" type="password" value="Tecno2026!" autocomplete="current-password" />
           </div>
           <div class="login-actions">
             <button class="button" type="submit">Ingresar</button>
@@ -1456,8 +1517,8 @@ function adminDashboardTemplate() {
       </div>
       <div class="activity-list">
         ${[
-          ...state.tickets.map((ticket) => ({ date: ticket.updatedAt, type: getCompany(ticket.companyId).name, status: ticket.status, description: `${ticket.ticketNumber} · ${ticket.problemType}` })),
-          ...state.repairs.map((repair) => ({ date: repair.entryDate, type: getCompany(repair.companyId).name, status: repair.status, description: `${repair.orderNumber} · ${getEquipment(repair.equipmentId)?.name || "Equipo"}` })),
+          ...state.tickets.map((ticket) => ({ date: ticket.updatedAt, type: companyName(ticket.companyId), status: ticket.status, description: `${ticket.ticketNumber} · ${ticket.problemType}` })),
+          ...state.repairs.map((repair) => ({ date: repair.entryDate, type: companyName(repair.companyId), status: repair.status, description: `${repair.orderNumber} · ${getEquipment(repair.equipmentId)?.name || "Equipo"}` })),
         ].sort((a, b) => b.date.localeCompare(a.date)).slice(0, 7).map(activityRow).join("")}
       </div>
     </section>
@@ -1513,7 +1574,7 @@ function adminCompaniesTemplate() {
             </div>
           </article>
         `;
-      }).join("")}
+      }).join("") || `<div class="empty-state">Todavía no hay empresas cargadas. Usá “Nueva empresa” para empezar.</div>`}
     </div>
   `;
 }
@@ -1571,7 +1632,7 @@ function adminTicketsTemplate() {
             ${filtered.map((ticket) => `
               <tr class="status-row ${statusClass(ticket.status)}">
                 <td><strong>${ticket.ticketNumber}</strong><br />${ticket.problemType}</td>
-                <td>${getCompany(ticket.companyId).name}</td>
+                <td>${companyName(ticket.companyId)}</td>
                 <td>${getEquipment(ticket.equipmentId)?.name || "Sin equipo"}</td>
                 <td>${badge(ticket.urgency)}</td>
                 <td>${badge(ticket.status)}</td>
@@ -1603,7 +1664,7 @@ function adminRepairsTemplate() {
           <div class="item-head">
             <div>
               <h2 class="item-title">${repair.orderNumber}</h2>
-              <p class="item-subtitle">${getCompany(repair.companyId).name} · ${getEquipment(repair.equipmentId)?.name || "Equipo"}</p>
+              <p class="item-subtitle">${companyName(repair.companyId)} · ${getEquipment(repair.equipmentId)?.name || "Equipo"}</p>
             </div>
             ${badge(repair.status)}
           </div>
@@ -1617,7 +1678,7 @@ function adminRepairsTemplate() {
             <button class="soft-button" data-open-repair="${repair.id}">Gestionar</button>
           </div>
         </article>
-      `).join("")}
+      `).join("") || `<div class="empty-state">Todavía no hay reparaciones cargadas.</div>`}
     </div>
   `;
 }
@@ -1637,7 +1698,7 @@ function adminEquipmentTemplate() {
           <div class="item-head">
             <div>
               <h2 class="item-title">${item.name}</h2>
-              <p class="item-subtitle">${getCompany(item.companyId).name} · ${item.type} · ${item.brand} ${item.model}</p>
+              <p class="item-subtitle">${companyName(item.companyId)} · ${item.type} · ${item.brand} ${item.model}</p>
             </div>
             ${badge(item.status)}
           </div>
@@ -1651,7 +1712,7 @@ function adminEquipmentTemplate() {
             <button class="soft-button" data-open-equipment="${item.id}">Editar</button>
           </div>
         </article>
-      `).join("")}
+      `).join("") || `<div class="empty-state">Todavía no hay equipos cargados.</div>`}
     </div>
   `;
 }
@@ -1662,11 +1723,36 @@ function adminSalesTemplate() {
   if (state.adminFocus?.type === "sales-opportunities") {
     visits = visits.filter((visit) => ["Interesado", "Contrató"].includes(visit.status));
   }
-  const zones = state.salesZones.filter((zone) => canManageSales(user) || visits.some((visit) => visit.zoneId === zone.id));
+  const filters = {
+    salesSeller: state.filters.salesSeller || "Todos",
+    salesZone: state.filters.salesZone || "Todas",
+    salesStatus: state.filters.salesStatus || "Todos",
+  };
+  if (filters.salesSeller !== "Todos") {
+    visits = visits.filter((visit) => (visit.updatedBySellerId || visit.assignedSellerId || "") === filters.salesSeller);
+  }
+  if (filters.salesZone !== "Todas") {
+    visits = visits.filter((visit) => visit.zoneId === filters.salesZone);
+  }
+  if (filters.salesStatus !== "Todos") {
+    visits = visits.filter((visit) => visit.status === filters.salesStatus);
+  }
+  const zones = state.salesZones.filter((zone) => filters.salesZone === "Todas" || zone.id === filters.salesZone);
   const statusCounts = visitStatuses.map((status) => ({
     status,
     count: visits.filter((visit) => visit.status === status).length,
   }));
+  const sellers = state.users.filter((seller) => seller.active && ["Vendedor", "Asistente comercial"].includes(seller.role));
+  const sellerSummary = sellers.map((seller) => {
+    const owned = state.salesVisits.filter((visit) => (visit.updatedBySellerId || visit.assignedSellerId) === seller.id);
+    return {
+      seller,
+      visited: owned.filter((visit) => ["Visitado", "Interesado", "Contrató"].includes(visit.status)).length,
+      interested: owned.filter((visit) => visit.status === "Interesado").length,
+      hired: owned.filter((visit) => visit.status === "Contrató").length,
+      notVisited: owned.filter((visit) => visit.status === "No visitado").length,
+    };
+  });
 
   return `
     <div class="section-head">
@@ -1674,12 +1760,68 @@ function adminSalesTemplate() {
         <h1>${user?.role === "Vendedor" ? "Mis visitas comerciales" : "Ventas y recorridos"}</h1>
         <p>Organizá zonas, prospectos y seguimiento comercial sin perder el pulso de la calle.</p>
       </div>
-      ${canManageSales(user) ? `<button class="button" data-open-sales-import>Cargar zona o listado</button>` : ""}
+      <div class="toolbar" style="margin: 0;">
+        ${canManageSales(user) ? `<button class="button" data-open-sales-import>Cargar zona o listado</button>` : ""}
+        ${canCreateCustomer(user) ? `<button class="soft-button" data-open-company>Nueva empresa</button>` : ""}
+        ${canCreateCustomer(user) ? `<button class="soft-button" data-open-equipment>Agregar equipo</button>` : ""}
+      </div>
     </div>
     ${adminFocusNotice()}
+    <section class="panel">
+      <div class="toolbar" style="margin-bottom: 0;">
+        <div class="filters">
+          <select data-filter="salesSeller">
+            <option value="Todos">Todos los vendedores</option>
+            ${sellers.map((seller) => `<option value="${seller.id}" ${filters.salesSeller === seller.id ? "selected" : ""}>${seller.name}</option>`).join("")}
+          </select>
+          <select data-filter="salesZone">
+            <option value="Todas">Todas las zonas</option>
+            ${state.salesZones.map((zone) => `<option value="${zone.id}" ${filters.salesZone === zone.id ? "selected" : ""}>${zone.name}</option>`).join("")}
+          </select>
+          <select data-filter="salesStatus">
+            <option value="Todos">Todos los estados</option>
+            ${visitStatuses.map((status) => `<option ${filters.salesStatus === status ? "selected" : ""}>${status}</option>`).join("")}
+          </select>
+        </div>
+      </div>
+    </section>
     <div class="grid stats-grid">
       ${statusCounts.map((item) => statCard(item.status, item.count, "Prospectos en este estado")).join("")}
     </div>
+    ${canManageSales(user) ? `
+      <section class="panel" style="margin-top: 16px;">
+        <div class="panel-head">
+          <div>
+            <h2>Resumen por vendedor</h2>
+            <p>Seguimiento de visitas, interesados y contrataciones.</p>
+          </div>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Vendedor</th>
+                <th>Visitados</th>
+                <th>Interesados</th>
+                <th>Contrataron</th>
+                <th>No visitados</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${sellerSummary.map((row) => `
+                <tr>
+                  <td><strong>${row.seller.name}</strong><br />${row.seller.role}</td>
+                  <td>${row.visited}</td>
+                  <td>${row.interested}</td>
+                  <td>${row.hired}</td>
+                  <td>${row.notVisited}</td>
+                </tr>
+              `).join("")}
+            </tbody>
+          </table>
+        </div>
+      </section>
+    ` : ""}
     <div class="sales-board">
       ${zones.map((zone) => {
         const zoneVisits = visits.filter((visit) => visit.zoneId === zone.id);
@@ -1690,14 +1832,17 @@ function adminSalesTemplate() {
                 <h2>${zone.name}</h2>
                 <p>${zone.description || "Recorrido comercial asignado."}</p>
               </div>
-              <span class="badge">${zoneVisits.length} visitas</span>
+              <div>
+                <span class="badge">${zoneVisits.length} visitas</span>
+                <span class="badge neutral">${sellerNameOrOpen(zone.assignedSellerId)}</span>
+              </div>
             </div>
             <div class="visit-list">
               ${zoneVisits.length ? zoneVisits.map(visitCard).join("") : `<div class="empty-state">No hay visitas cargadas en esta zona.</div>`}
             </div>
           </section>
         `;
-      }).join("")}
+      }).join("") || `<div class="empty-state">Todavía no hay zonas cargadas.</div>`}
     </div>
   `;
 }
@@ -1715,7 +1860,8 @@ function visitCard(visit) {
       <div class="visit-meta">
         <span>${visit.contactName || "Sin contacto"}</span>
         <span>${visit.phone || "Sin teléfono"}</span>
-        <span>${userDisplayName(visit.assignedSellerId)}</span>
+        <span>${sellerNameOrOpen(visit.assignedSellerId)}</span>
+        ${visit.updatedBySellerId ? `<span>Actualizó: ${userDisplayName(visit.updatedBySellerId)}</span>` : ""}
       </div>
       <p class="item-subtitle">${visit.notes || "Sin observaciones."}</p>
       <div class="visit-actions">
@@ -1750,7 +1896,7 @@ function adminUsersTemplate() {
             ${badge(user.active ? "Activo" : "Inactivo")}
           </div>
           <div class="meta-grid">
-            ${meta("Empresa", user.companyId ? getCompany(user.companyId).name : "TecnoStore")}
+            ${meta("Empresa", user.companyId ? companyName(user.companyId) : "TecnoStore")}
             ${meta("Teléfono", user.phone || "Sin teléfono")}
             ${meta("Clave demo", user.password || "No definida")}
             ${meta("Alta", formatDate(user.createdAt))}
@@ -1812,7 +1958,7 @@ function bindGlobalEvents() {
 function bindLoginEvents() {
   $("#loginForm").addEventListener("submit", (event) => {
     event.preventDefault();
-    login($("#email").value);
+    login($("#email").value, $("#password").value);
   });
   $("[data-help]").addEventListener("click", () => {
     alert("Solicitá a TecnoStore Empresas el alta de tu usuario o el restablecimiento de contraseña.");
@@ -2024,7 +2170,7 @@ function openNotificationsModal() {
         ${notifications.length ? notifications.map((ticket) => `
           <button class="notification-row" type="button" data-notification-ticket="${ticket.id}">
             <span>${badge(ticket.urgency)}</span>
-            <strong>${ticket.ticketNumber} · ${getCompany(ticket.companyId).name}</strong>
+            <strong>${ticket.ticketNumber} · ${companyName(ticket.companyId)}</strong>
             <small>${getEquipment(ticket.equipmentId)?.name || "Otro / consulta general"} · ${ticket.problemType}</small>
           </button>
         `).join("") : `<div class="empty-state">No hay tickets abiertos pendientes.</div>`}
@@ -2046,6 +2192,10 @@ function openNotificationsModal() {
 function openEquipmentModal(id) {
   const item = state.equipment.find((equipment) => equipment.id === id);
   const companies = state.role === "admin" ? state.companies : [getCompany()];
+  if (!item && !companies.length) {
+    alert("Primero creá una empresa para poder cargar sus equipos.");
+    return;
+  }
   openModal(`
     <form class="modal" id="equipmentForm">
       <div class="modal-head">
@@ -2125,6 +2275,7 @@ function showEquipmentHistory(equipmentId) {
 function openCompanyModal(id) {
   const company = state.companies.find((item) => item.id === id);
   const loginUser = company ? getCompanyUser(company.id) : null;
+  const defaultPlan = getPlan(company?.planId || "start");
   openModal(`
     <form class="modal" id="companyForm">
       <div class="modal-head">
@@ -2142,15 +2293,15 @@ function openCompanyModal(id) {
         <div class="field"><label>Teléfono</label><input name="phone" value="${company?.phone || ""}" /></div>
         <div class="field"><label>Email</label><input name="email" type="email" value="${company?.email || ""}" /></div>
         <div class="field"><label>Dirección</label><input name="address" value="${company?.address || ""}" /></div>
-        <div class="field"><label>Plan contratado</label><select name="planId">${state.plans.map((plan) => `<option value="${plan.id}" ${company?.planId === plan.id ? "selected" : ""}>${plan.name}</option>`).join("")}</select></div>
+        <div class="field"><label>Plan contratado</label><select name="planId">${state.plans.map((plan) => `<option value="${plan.id}" ${(company?.planId || defaultPlan.id) === plan.id ? "selected" : ""}>${plan.name}</option>`).join("")}</select></div>
         <div class="field"><label>Estado de suscripción</label><select name="subscriptionStatus">${subscriptionStatuses.map((status) => `<option ${company?.subscriptionStatus === status ? "selected" : ""}>${status}</option>`).join("")}</select></div>
         <div class="field"><label>Fecha de inicio</label><input type="date" name="startDate" value="${company?.startDate || "2026-05-18"}" /></div>
         <div class="field"><label>Fecha de vencimiento</label><input type="date" name="renewalDate" value="${company?.renewalDate || "2026-06-18"}" /></div>
-        <div class="field"><label>Asistencias incluidas</label><input type="number" name="includedAssistances" value="${company?.includedAssistances || 10}" /></div>
+        <div class="field"><label>Asistencias incluidas</label><input type="number" name="includedAssistances" value="${company?.includedAssistances || defaultPlan.includedAssistances}" /></div>
         <div class="field"><label>Asistencias usadas</label><input type="number" name="usedAssistances" value="${company?.usedAssistances || 0}" /></div>
-        <div class="field"><label>Equipos permitidos</label><input type="number" name="maxEquipment" value="${company?.maxEquipment || 10}" /></div>
+        <div class="field"><label>Equipos permitidos</label><input type="number" name="maxEquipment" value="${company?.maxEquipment || defaultPlan.maxEquipment}" /></div>
         <div class="field"><label>Login cliente</label><input name="loginEmail" type="email" value="${loginUser?.email || company?.email || ""}" /></div>
-        <div class="field"><label>Clave provisoria</label><input name="loginPassword" value="${loginUser?.password || "demo1234"}" /></div>
+        <div class="field"><label>Clave provisoria</label><input name="loginPassword" value="${loginUser?.password || "Cliente2026!"}" /></div>
         <div class="field wide"><label>Notas internas</label><textarea name="notes">${company?.notes || ""}</textarea></div>
       </div>
       <div class="toolbar" style="margin: 12px 0 0;">
@@ -2205,9 +2356,10 @@ function saveCompany(event) {
   Object.assign(loginUser, {
     name: form.contactName || form.name,
     email: form.loginEmail || form.email,
-    password: form.loginPassword || "demo1234",
+    password: form.loginPassword || "Cliente2026!",
     phone: form.phone,
   });
+  state.currentCompanyId = payload.id;
   saveState();
   $("#modal").close();
   render();
@@ -2229,7 +2381,7 @@ function openUserModal(id, presetCompanyId = "") {
       <div class="form-grid">
         <div class="field"><label>Nombre</label><input name="name" required value="${user?.name || ""}" /></div>
         <div class="field"><label>Email de acceso</label><input name="email" type="email" required value="${user?.email || ""}" /></div>
-        <div class="field"><label>Clave provisoria</label><input name="password" value="${user?.password || "demo1234"}" /></div>
+        <div class="field"><label>Clave provisoria</label><input name="password" value="${user?.password || "Temporal2026!"}" /></div>
         <div class="field"><label>Teléfono</label><input name="phone" value="${user?.phone || ""}" /></div>
         <div class="field">
           <label>Rol</label>
@@ -2269,7 +2421,7 @@ function saveUser(event) {
   Object.assign(user, {
     name: form.name,
     email: form.email,
-    password: form.password || "demo1234",
+    password: form.password || "Temporal2026!",
     phone: form.phone,
     role: form.role,
     companyId: form.role === "Cliente empresa" ? form.companyId : "",
@@ -2326,8 +2478,11 @@ function openSalesImportModal() {
           <input name="zoneName" required placeholder="Ej: Zona Centro" />
         </div>
         <div class="field">
-          <label>Asignar a vendedor</label>
-          <select name="assignedSellerId" required>${sellerOptions(currentUser()?.role === "Asistente comercial" ? currentUser().id : "")}</select>
+          <label>Prioridad para vendedor</label>
+          <select name="assignedSellerId">
+            <option value="">Abierta para todos</option>
+            ${sellerOptions(currentUser()?.role === "Asistente comercial" ? currentUser().id : "")}
+          </select>
         </div>
         <div class="field wide">
           <label>Descripción de zona</label>
@@ -2335,12 +2490,12 @@ function openSalesImportModal() {
         </div>
         <div class="field wide">
           <label>Listado</label>
-          <textarea name="rows" required placeholder="Nombre, dirección, contacto, teléfono, nota&#10;Farmacia Avenida, Av. Illia 420, María, 2664102201, preguntar por mantenimiento&#10;Kiosco Norte, San Martín 1220, Diego, 2664551122, tiene 2 PCs"></textarea>
+          <textarea name="rows" placeholder="Nombre, dirección, contacto, teléfono, nota&#10;Farmacia Avenida, Av. Illia 420, María, 2664102201, preguntar por mantenimiento&#10;Kiosco Norte, San Martín 1220, Diego, 2664551122, tiene 2 PCs"></textarea>
         </div>
       </div>
       <div class="whatsapp-card" style="margin-top: 12px;">
         <strong>Formato recomendado</strong>
-        <span>Nombre, dirección, contacto, teléfono, observación. Si falta algún dato, igual se carga y se puede completar después.</span>
+        <span>Podés crear solo la zona y cargar visitas después. Si pegás listado: Nombre, dirección, contacto, teléfono, observación.</span>
       </div>
       <div class="toolbar" style="margin: 14px 0 0;">
         <button class="button" type="submit">Crear visitas</button>
@@ -2384,7 +2539,7 @@ function saveSalesImport(event) {
     description: form.description || zone.description,
     assignedSellerId: form.assignedSellerId,
   });
-  const visits = parseSalesRows(form.rows).map((visit) => ({
+  const visits = parseSalesRows(form.rows || "").map((visit) => ({
     id: uid("v"),
     zoneId: zone.id,
     assignedSellerId: form.assignedSellerId,
@@ -2403,6 +2558,9 @@ function updateVisitStatus(id, status) {
   const visit = state.salesVisits.find((item) => item.id === id);
   if (!visit) return;
   visit.status = status;
+  if (isSalesUser(currentUser())) {
+    visit.updatedBySellerId = currentUser().id;
+  }
   visit.lastUpdate = "2026-05-18";
   saveState();
   render();
@@ -2431,6 +2589,10 @@ function savePlan(event) {
 }
 
 function openTicketAdminModal(id) {
+  if (!id && !state.companies.length) {
+    alert("Primero creá una empresa para asociar el ticket.");
+    return;
+  }
   const ticket = state.tickets.find((item) => item.id === id);
   const companyId = ticket?.companyId || state.currentCompanyId;
   const equipmentOptions = equipmentOptionsForCompany(companyId, ticket?.equipmentId || "other", true);
@@ -2516,6 +2678,10 @@ function saveAdminTicket(event) {
 }
 
 function openRepairModal(id) {
+  if (!id && !state.companies.length) {
+    alert("Primero creá una empresa para asociar la reparación.");
+    return;
+  }
   const repair = state.repairs.find((item) => item.id === id);
   const repairCompanyId = repair?.companyId || state.currentCompanyId;
   openModal(`
